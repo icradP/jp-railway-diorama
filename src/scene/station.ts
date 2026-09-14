@@ -3,6 +3,7 @@ import { MeshBuilder } from '../core/mesh';
 import { materials } from '../core/materials';
 import { ShapeFactory } from '../core/shapes';
 import { Rng } from '../core/rng';
+import { getAtlas, texMat } from '../core/textures';
 
 export interface StationHandles {
   group: THREE.Group;
@@ -112,11 +113,35 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
 
   const sign = new MeshBuilder('StationSign');
   sign.add(ShapeFactory.cylinder(0.03, 0.035, 1.25, 6), materials.get('metalGray'), [0, 0.62, 0]);
-  sign.add(ShapeFactory.box(0.65, 0.26, 0.04), materials.get('signWhite'), [0, 1.2, 0]);
-  sign.add(ShapeFactory.box(0.65, 0.06, 0.045), materials.get('leafC'), [0, 1.27, 0]);
-  sign.add(ShapeFactory.box(0.32, 0.08, 0.02), materials.get('warnBlack'), [0, 1.17, 0.03]);
+  // Textured name plate
+  const plateMat = texMat(getAtlas().get('stationSign'), 0xffffff, { roughness: 0.6, metalness: 0.05 });
+  const plate = new THREE.Mesh(ShapeFactory.box(0.85, 0.28, 0.04), plateMat);
+  plate.position.set(0, 1.2, 0);
+  plate.castShadow = true;
+  sign.child(plate);
+  // Back plate
+  sign.add(ShapeFactory.box(0.88, 0.32, 0.02), materials.get('metalGray'), [0, 1.2, -0.03]);
   sign.transform([1.3, 0.28, -0.55]);
   furn.child(sign.build());
+
+  // Timetable board
+  const tt = new MeshBuilder('Timetable');
+  tt.add(ShapeFactory.box(0.05, 1.1, 0.05), materials.get('metalGray'), [0, 0.55, 0]);
+  const ttMat = texMat(getAtlas().get('timetable'), 0xffffff, { roughness: 0.7 });
+  const ttBoard = new THREE.Mesh(ShapeFactory.box(0.28, 0.38, 0.03), ttMat);
+  ttBoard.position.set(0, 0.95, 0.02);
+  ttBoard.castShadow = true;
+  tt.child(ttBoard);
+  tt.add(ShapeFactory.box(0.32, 0.42, 0.02), materials.get('metalDark'), [0, 0.95, -0.01]);
+  tt.transform([-0.9, 0.28, -0.5]);
+  furn.child(tt.build());
+
+  // Poster on shelter back wall
+  const posterMat = texMat(getAtlas().get('poster'), 0xffffff, { roughness: 0.8 });
+  const poster = new THREE.Mesh(ShapeFactory.box(0.28, 0.28, 0.02), posterMat);
+  poster.position.set(-0.5, 1.05, 0.52);
+  poster.castShadow = false;
+  furn.child(poster);
 
   const lamp = new MeshBuilder('StationLamp');
   lamp.add(ShapeFactory.cylinder(0.015, 0.015, 0.22, 5), materials.get('metalDark'), [0, 0.11, 0]);
@@ -132,7 +157,18 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
   const vend = new MeshBuilder('VendingMachine');
   vend.add(ShapeFactory.box(0.7, 1.45, 0.52), materials.get('vendingBody'), [0, 0.75, 0]);
   vend.add(ShapeFactory.box(0.08, 1.3, 0.48), materials.get('vendingWhite'), [-0.32, 0.75, 0]);
-  vend.add(ShapeFactory.box(0.48, 0.65, 0.06), materials.get('vendingScreen'), [0, 1.0, 0.25]);
+  // Textured product window
+  const vendPanel = new THREE.Mesh(
+    ShapeFactory.box(0.48, 0.72, 0.04),
+    texMat(getAtlas().get('vendingPanel'), 0xffffff, {
+      roughness: 0.25,
+      metalness: 0.2,
+      emissive: 0x8ab0d0,
+      emissiveIntensity: 0.55,
+    }),
+  );
+  vendPanel.position.set(0, 1.0, 0.25);
+  vend.child(vendPanel);
   for (let i = 0; i < 3; i++) {
     vend.add(ShapeFactory.box(0.1, 0.05, 0.03), materials.get('vendingWhite'), [-0.14 + i * 0.14, 0.42, 0.27]);
   }

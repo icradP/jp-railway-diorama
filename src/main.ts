@@ -8,6 +8,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 
 import { materials } from './core/materials';
+import { buildAtlas } from './core/textures';
 import { Rng } from './core/rng';
 import { animationManager, crossingState } from './core/animation';
 import { assets } from './core/assets';
@@ -24,12 +25,15 @@ import { buildProps } from './scene/props';
 import { buildEnvironment } from './scene/environment';
 import { buildTrain } from './scene/train';
 
-/** Lightweight color grade — slight teal shadows, warm highlights, mild vignette. */
+/** Lightweight color grade — teal shadows, warm highlights, soft vignette, subtle edge ink. */
 const ColorGradeShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
-    vignetteStrength: { value: 0.28 },
-    warmth: { value: 0.04 },
+    vignetteStrength: { value: 0.38 },
+    warmth: { value: 0.06 },
+    contrast: { value: 1.08 },
+    edgeInk: { value: 0.05 },
+    resolution: { value: new THREE.Vector2(1, 1) },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -42,16 +46,29 @@ const ColorGradeShader = {
     uniform sampler2D tDiffuse;
     uniform float vignetteStrength;
     uniform float warmth;
+    uniform float contrast;
+    uniform float edgeInk;
+    uniform vec2 resolution;
     varying vec2 vUv;
     void main() {
       vec4 color = texture2D(tDiffuse, vUv);
-      // Warm highlights, cool shadows
       float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-      color.rgb += warmth * smoothstep(0.4, 1.0, luma);
-      color.rgb -= warmth * 0.6 * (1.0 - smoothstep(0.0, 0.45, luma)) * vec3(0.2, 0.05, -0.1);
-      // Soft vignette
+      // Warm highlights, cool shadows
+      color.rgb += warmth * smoothstep(0.45, 1.0, luma);
+      color.rgb -= warmth * 0.55 * (1.0 - smoothstep(0.0, 0.4, luma)) * vec3(0.15, 0.05, -0.08);
+      // Contrast around mid gray
+      color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+      // Subtle luminance edge ink (miniature outline feel)
+      vec2 px = 1.0 / resolution;
+      float l = dot(texture2D(tDiffuse, vUv + vec2(-px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));
+      float r = dot(texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));
+      float u = dot(texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));
+      float d = dot(texture2D(tDiffuse, vUv + vec2(0.0, -px.y)).rgb, vec3(0.299, 0.587, 0.114));
+      float edge = abs(l - r) + abs(u - d);
+      color.rgb *= 1.0 - clamp(edge * edgeInk * 6.0, 0.0, 0.22);
+      // Vignette
       vec2 q = vUv - 0.5;
-      float vig = 1.0 - dot(q, q) * vignetteStrength * 2.2;
+      float vig = 1.0 - dot(q, q) * vignetteStrength * 2.4;
       color.rgb *= clamp(vig, 0.0, 1.0);
       gl_FragColor = color;
     }
@@ -79,6 +96,7 @@ async function main(): Promise<void> {
   // --- Scene ---
   const scene = new THREE.Scene();
   materials.build();
+  buildAtlas();
 
   const rng = new Rng(1947);
 
@@ -180,19 +198,17 @@ async function main(): Promise<void> {
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
 
-  // Bloom only on emissive lamps / warning lights — high threshold keeps sky clean
+  // Bloom on warm windows / lamps / signals
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.42,
-    0.4,
-    0.93,
+    0.55,
+    0.55,
+    0.88,
   );
   composer.addPass(bloom);
 
-  // Cheap AO approximation: soft darkening via depth-unaware SSAO substitute
-  // Using a subtle vignette + grade; full SSAO is heavy — contact shadows +
-  // shadow map cover the diorama look. Optional SSAO can be added later.
   const gradePass = new ShaderPass(ColorGradeShader);
+  gradePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
   composer.addPass(gradePass);
 
   const smaa = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
@@ -253,6 +269,7 @@ async function main(): Promise<void> {
     renderer.setSize(w, h);
     composer.setSize(w, h);
     bloom.setSize(w, h);
+    gradePass.uniforms.resolution.value.set(w, h);
   }
   window.addEventListener('resize', onResize);
 

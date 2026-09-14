@@ -4,6 +4,7 @@ import { materials } from '../core/materials';
 import { ShapeFactory } from '../core/shapes';
 import { assets } from '../core/assets';
 import { crossingState } from '../core/animation';
+import { getAtlas, texMat } from '../core/textures';
 
 export interface TrainHandles {
   group: THREE.Group;
@@ -97,7 +98,23 @@ function buildRailcar(): THREE.Group {
     b.add(ShapeFactory.box(0.02, 0.04, 0.4), materials.get('metalDark'), [CAR_L / 2 + 0.04, bodyY - 0.38 + i * 0.07, 0]);
   }
   // Destination board
-  b.add(ShapeFactory.box(0.04, 0.1, 0.3), stripe, [CAR_L / 2 + 0.01, bodyY + 0.38, 0]);
+  const destMat = texMat(getAtlas().get('trainDest'), 0xffffff, {
+    roughness: 0.45,
+    metalness: 0.1,
+    emissive: 0x2a2818,
+    emissiveIntensity: 0.4,
+  });
+  const dest = new THREE.Mesh(ShapeFactory.box(0.04, 0.12, 0.34), destMat);
+  dest.position.set(CAR_L / 2 + 0.02, bodyY + 0.38, 0);
+  b.child(dest);
+
+  // Side line marks
+  const sideMat = texMat(getAtlas().get('trainSide'), 0xffffff, { roughness: 0.6, metalness: 0.1 });
+  for (const side of [-1, 1] as const) {
+    const mark = new THREE.Mesh(ShapeFactory.box(0.5, 0.18, 0.015), sideMat);
+    mark.position.set(-1.15, bodyY - 0.38, side * (CAR_W / 2 + 0.02));
+    b.child(mark);
+  }
 
   // Round headlights
   const headGeo = ShapeFactory.cylinder(0.07, 0.07, 0.05, 10);
