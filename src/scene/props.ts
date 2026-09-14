@@ -44,30 +44,30 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
   }
 
   const polePositions: THREE.Vector3[] = [
-    new THREE.Vector3(5.5, 0, trackZ(5.5) + 1.7),
-    new THREE.Vector3(-5.8, 0, trackZ(-5.8) + 1.6),
-    new THREE.Vector3(-1.4, 0, trackZ(-1.4) + 5.0),
-    new THREE.Vector3(1.4, 0, trackZ(1.4) - 5.0),
+    new THREE.Vector3(5.8, 0, trackZ(5.8) + 1.8),
+    new THREE.Vector3(-6.0, 0, trackZ(-6.0) + 1.7),
+    new THREE.Vector3(-1.5, 0, trackZ(-1.5) + 5.2),
+    new THREE.Vector3(1.5, 0, trackZ(1.5) - 5.2),
   ];
 
   for (const pos of polePositions) {
-    const pole = makePole(2.7);
+    const pole = makePole(4.2); // ~utility pole scale vs 5m houses
     pole.position.copy(pos);
     pole.position.y = 0.05;
     b.child(pole);
   }
 
-  // Wires between poles (thinner, fewer strands)
+  // Wires between poles
   for (let i = 0; i < polePositions.length - 1; i++) {
     const a = polePositions[i].clone();
     const bb = polePositions[i + 1].clone();
-    a.y += 2.45;
-    bb.y += 2.45;
-    for (const dy of [0, 0.28] as const) {
+    a.y += 3.85;
+    bb.y += 3.85;
+    for (const dy of [0, 0.32] as const) {
       const wireGeo = ShapeFactory.catenary(
         a.clone().setY(a.y - dy),
         bb.clone().setY(bb.y - dy),
-        0.22 + dy * 0.08,
+        0.28 + dy * 0.1,
         10,
       );
       b.add(wireGeo, materials.get('wire'));
@@ -75,9 +75,9 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
   }
 
   // Wire from east pole toward station
-  const p0 = polePositions[0].clone().setY(2.45);
-  const p1 = new THREE.Vector3(-2.6, 2.35, trackZ(-2.6) + 2.3);
-  b.add(ShapeFactory.catenary(p0, p1, 0.28, 12), materials.get('wire'));
+  const p0 = polePositions[0].clone().setY(3.85);
+  const p1 = new THREE.Vector3(-3.4, 2.8, trackZ(-3.4) - 2.45);
+  b.add(ShapeFactory.catenary(p0, p1, 0.35, 12), materials.get('wire'));
 
   // --- Fence (wooden, rural) near field ---
   function fenceRun(x0: number, z0: number, x1: number, z1: number, posts: number): void {

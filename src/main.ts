@@ -171,9 +171,9 @@ async function main(): Promise<void> {
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 120);
   // Product-shot framing for 15×12 residential block
-  const camDist = 19.5;
-  const camElev = THREE.MathUtils.degToRad(36);
-  const camAzim = THREE.MathUtils.degToRad(34);
+  const camDist = 22;
+  const camElev = THREE.MathUtils.degToRad(34);
+  const camAzim = THREE.MathUtils.degToRad(32);
   camera.position.set(
     Math.sin(camAzim) * Math.cos(camElev) * camDist,
     Math.sin(camElev) * camDist,
@@ -184,8 +184,8 @@ async function main(): Promise<void> {
   controls.target.set(0, 0.55, 0.15);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.minDistance = 5;
-  controls.maxDistance = 36;
+  controls.minDistance = 6;
+  controls.maxDistance = 40;
   controls.minPolarAngle = THREE.MathUtils.degToRad(12);
   controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
   controls.enablePan = true;

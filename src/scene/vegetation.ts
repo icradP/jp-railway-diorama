@@ -84,37 +84,35 @@ export function buildVegetation(rng: Rng): VegetationHandles {
     return t.build();
   }
 
-  // Street / yard trees — fit 田 residential block (15×12)
-  const sakura1 = makeTree({ height: 1.55, crownR: 0.38, leafMat: 'sakura', multi: true });
-  sakura1.position.set(-6.2, 0, 4.8);
+  // Street / yard trees — scale relative to houses (~4–5m tall houses)
+  const sakura1 = makeTree({ height: 2.4, crownR: 0.5, leafMat: 'sakura', multi: true });
+  sakura1.position.set(-6.5, 0, 5.0);
   sakura1.rotation.y = 0.4;
   b.child(sakura1);
   registerSway(sakura1, 0.03);
 
-  const sakura2 = makeTree({ height: 1.3, crownR: 0.34, leafMat: 'sakuraLight', multi: true });
-  sakura2.position.set(6.0, 0, 4.5);
+  const sakura2 = makeTree({ height: 2.0, crownR: 0.42, leafMat: 'sakuraLight', multi: true });
+  sakura2.position.set(6.2, 0, 4.8);
   sakura2.rotation.y = 1.2;
   b.child(sakura2);
   registerSway(sakura2, 0.035);
 
-  // Persimmon-like tree near House C
-  const maple = makeTree({ height: 1.4, crownR: 0.36, leafMat: 'maple', multi: true });
-  maple.position.set(5.8, 0, -2.0);
+  const maple = makeTree({ height: 2.2, crownR: 0.45, leafMat: 'maple', multi: true });
+  maple.position.set(6.0, 0, -2.2);
   maple.rotation.y = 0.8;
   b.child(maple);
   registerSway(maple, 0.03);
 
-  // Neighborhood trees
   for (const [tx, tz, th] of [
-    [-6.4, 1.2, 1.2],
-    [6.5, 0.8, 1.15],
-    [-1.8, 5.0, 1.1],
-    [1.9, 5.2, 1.0],
-    [-2.2, -5.0, 1.05],
-    [6.2, -4.8, 1.15],
+    [-6.6, 1.4, 1.9],
+    [6.7, 1.0, 1.8],
+    [-2.0, 5.2, 1.7],
+    [2.1, 5.4, 1.6],
+    [-2.4, -5.2, 1.6],
+    [6.4, -5.0, 1.75],
   ] as const) {
     if (Math.abs(tx) < 1.8 || Math.abs(tz) < 1.3) continue;
-    const tree = makeTree({ height: th, crownR: 0.28, leafMat: rng.pick(['leafA', 'leafB', 'leafC']) });
+    const tree = makeTree({ height: th, crownR: 0.35, leafMat: rng.pick(['leafA', 'leafB', 'leafC']) });
     tree.position.set(tx, 0, tz);
     tree.rotation.y = rng.range(0, Math.PI * 2);
     b.child(tree);

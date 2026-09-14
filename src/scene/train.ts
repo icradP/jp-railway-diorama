@@ -11,9 +11,9 @@ export interface TrainHandles {
 }
 
 const RAIL_TOP = 0.31;
-const CAR_L = 3.4; // longer diesel railcar
-const CAR_W = 0.78;
-const CAR_H = 1.05;
+const CAR_L = 4.2; // longer diesel railcar — presence without dominating
+const CAR_W = 0.85;
+const CAR_H = 1.25;
 const HALF = CAR_L / 2;
 
 const APPROACH_START = 9.5;

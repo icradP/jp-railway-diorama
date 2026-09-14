@@ -19,23 +19,23 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
   const SZ = trackZ(SX) - 2.45;
   const faceTrack = Math.PI;
 
-  // --- Platform ---
+  // --- Platform (low, clearly subordinate to houses) ---
   const plat = new MeshBuilder('Platform');
-  plat.add(ShapeFactory.box(3.2, 0.28, 1.5), materials.get('concrete'), [0, 0.14, 0]);
-  const edge = ShapeFactory.plane(3.1, 0.12);
+  plat.add(ShapeFactory.box(2.6, 0.22, 1.15), materials.get('concrete'), [0, 0.11, 0]);
+  const edge = ShapeFactory.plane(2.5, 0.1);
   edge.rotateX(-Math.PI / 2);
-  plat.add(edge, materials.get('lineYellow'), [0, 0.285, -0.62]);
-  plat.add(ShapeFactory.box(0.65, 0.12, 0.45), materials.get('concrete'), [1.75, 0.06, 0.15]);
+  plat.add(edge, materials.get('lineYellow'), [0, 0.225, -0.48]);
+  plat.add(ShapeFactory.box(0.5, 0.1, 0.35), materials.get('concrete'), [1.4, 0.05, 0.12]);
   plat.transform([SX, 0.02, SZ], [0, faceTrack, 0]);
   b.child(plat.build());
 
-  // --- Shelter ---
+  // --- Shelter (short — ~1.3m posts, not building-scale) ---
   const shelter = new MeshBuilder('Shelter');
-  const SW = 2.4;
-  const SD = 1.1;
-  const postH = 1.75;
+  const SW = 1.9;
+  const SD = 0.95;
+  const postH = 1.25;
 
-  shelter.add(ShapeFactory.box(SW, 0.08, SD), materials.get('woodMid'), [0, 0.32, 0]);
+  shelter.add(ShapeFactory.box(SW, 0.07, SD), materials.get('woodMid'), [0, 0.26, 0]);
 
   const postGeo = ShapeFactory.box(0.1, postH, 0.1);
   for (const [px, pz] of [
@@ -44,55 +44,55 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
     [-SW / 2 + 0.1, SD / 2 - 0.1],
     [SW / 2 - 0.1, SD / 2 - 0.1],
   ] as const) {
-    shelter.add(postGeo, materials.get('woodDark'), [px, 0.32 + postH / 2, pz]);
+    shelter.add(postGeo, materials.get('woodDark'), [px, 0.26 + postH / 2, pz]);
   }
 
   shelter.add(
-    ShapeFactory.box(SW - 0.15, postH - 0.2, 0.06),
+    ShapeFactory.box(SW - 0.12, postH - 0.15, 0.05),
     materials.get('wall'),
-    [0, 0.32 + postH / 2, SD / 2 - 0.12],
+    [0, 0.26 + postH / 2, SD / 2 - 0.1],
   );
   shelter.add(
-    ShapeFactory.box(0.06, postH * 0.55, SD - 0.2),
+    ShapeFactory.box(0.05, postH * 0.55, SD - 0.18),
     materials.get('wallShade'),
-    [-SW / 2 + 0.12, 0.32 + postH * 0.28, 0],
+    [-SW / 2 + 0.1, 0.26 + postH * 0.28, 0],
   );
   shelter.add(
-    ShapeFactory.box(0.06, postH * 0.55, SD - 0.2),
+    ShapeFactory.box(0.05, postH * 0.55, SD - 0.18),
     materials.get('wallShade'),
-    [SW / 2 - 0.12, 0.32 + postH * 0.28, 0],
+    [SW / 2 - 0.1, 0.26 + postH * 0.28, 0],
   );
   shelter.add(
-    ShapeFactory.box(SW, 0.1, 0.1),
+    ShapeFactory.box(SW, 0.08, 0.08),
     materials.get('woodDark'),
-    [0, 0.32 + postH - 0.05, -SD / 2 + 0.1],
+    [0, 0.26 + postH - 0.04, -SD / 2 + 0.08],
   );
 
-  // Gabled roof
-  const roofRidgeH = 0.42;
-  const overhang = 0.26;
-  const roofGeo = ShapeFactory.box(SW + overhang * 2, 0.06, SD / 2 + overhang * 0.7);
+  // Gabled roof — small overhang
+  const roofRidgeH = 0.32;
+  const overhang = 0.2;
+  const roofGeo = ShapeFactory.box(SW + overhang * 2, 0.05, SD / 2 + overhang * 0.55);
   const roofL = new THREE.Mesh(roofGeo, materials.get('roof'));
-  roofL.position.set(0, 0.32 + postH + roofRidgeH / 2, -SD / 4 - 0.05);
-  roofL.rotation.x = -0.42;
+  roofL.position.set(0, 0.26 + postH + roofRidgeH / 2, -SD / 4 - 0.04);
+  roofL.rotation.x = -0.4;
   roofL.castShadow = true;
   roofL.receiveShadow = true;
   shelter.child(roofL);
   const roofR = new THREE.Mesh(roofGeo, materials.get('roof'));
-  roofR.position.set(0, 0.32 + postH + roofRidgeH / 2, SD / 4 + 0.05);
-  roofR.rotation.x = 0.42;
+  roofR.position.set(0, 0.26 + postH + roofRidgeH / 2, SD / 4 + 0.04);
+  roofR.rotation.x = 0.4;
   roofR.castShadow = true;
   roofR.receiveShadow = true;
   shelter.child(roofR);
   shelter.add(
-    ShapeFactory.box(SW + 0.15, 0.06, 0.08),
+    ShapeFactory.box(SW + 0.12, 0.05, 0.07),
     materials.get('roofEdge'),
-    [0, 0.32 + postH + roofRidgeH, 0],
+    [0, 0.26 + postH + roofRidgeH, 0],
   );
   shelter.add(
-    ShapeFactory.box(SW + overhang * 1.4, 0.03, SD + overhang * 1.1),
+    ShapeFactory.box(SW + overhang * 1.3, 0.025, SD + overhang),
     materials.get('woodLight'),
-    [0, 0.32 + postH - 0.02, 0],
+    [0, 0.26 + postH - 0.015, 0],
   );
 
   shelter.transform([SX, 0, SZ], [0, faceTrack, 0]);
@@ -155,11 +155,10 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
   furn.child(lamp.build());
 
   const vend = new MeshBuilder('VendingMachine');
-  vend.add(ShapeFactory.box(0.7, 1.45, 0.52), materials.get('vendingBody'), [0, 0.75, 0]);
-  vend.add(ShapeFactory.box(0.08, 1.3, 0.48), materials.get('vendingWhite'), [-0.32, 0.75, 0]);
-  // Textured product window
+  vend.add(ShapeFactory.box(0.55, 1.1, 0.4), materials.get('vendingBody'), [0, 0.55, 0]);
+  vend.add(ShapeFactory.box(0.06, 1.0, 0.36), materials.get('vendingWhite'), [-0.24, 0.55, 0]);
   const vendPanel = new THREE.Mesh(
-    ShapeFactory.box(0.48, 0.72, 0.04),
+    ShapeFactory.box(0.36, 0.55, 0.03),
     texMat(getAtlas().get('vendingPanel'), 0xffffff, {
       roughness: 0.25,
       metalness: 0.2,
@@ -167,17 +166,16 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
       emissiveIntensity: 0.55,
     }),
   );
-  vendPanel.position.set(0, 1.0, 0.25);
+  vendPanel.position.set(0, 0.75, 0.19);
   vend.child(vendPanel);
   for (let i = 0; i < 3; i++) {
-    vend.add(ShapeFactory.box(0.1, 0.05, 0.03), materials.get('vendingWhite'), [-0.14 + i * 0.14, 0.42, 0.27]);
+    vend.add(ShapeFactory.box(0.08, 0.04, 0.02), materials.get('vendingWhite'), [-0.1 + i * 0.1, 0.3, 0.2]);
   }
-  vend.add(ShapeFactory.box(0.08, 0.03, 0.02), materials.get('metalDark'), [0.2, 0.52, 0.27]);
-  vend.add(ShapeFactory.box(0.65, 0.07, 0.07), materials.get('vendingWhite'), [0, 1.5, 0.18]);
-  const vendLight = new THREE.PointLight(0x6a9fff, 0.4, 1.8, 2);
-  vendLight.position.set(0, 1.0, 0.35);
+  vend.add(ShapeFactory.box(0.5, 0.05, 0.05), materials.get('vendingWhite'), [0, 1.12, 0.14]);
+  const vendLight = new THREE.PointLight(0x6a9fff, 0.4, 1.5, 2);
+  vendLight.position.set(0, 0.75, 0.3);
   vend.child(vendLight);
-  vend.transform([1.35, 0.1, 0.15]);
+  vend.transform([1.05, 0.1, 0.1]);
   furn.child(vend.build());
 
   const trash = new MeshBuilder('TrashBin');
