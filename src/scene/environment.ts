@@ -29,10 +29,10 @@ export function buildEnvironment(rng: Rng): EnvironmentHandles {
     side: THREE.BackSide,
     depthWrite: false,
     uniforms: {
-      topColor: { value: new THREE.Color(0x3d7aaf) },
-      bottomColor: { value: new THREE.Color(0x8eb4d0) },
-      offset: { value: 3 },
-      exponent: { value: 0.45 },
+      topColor: { value: new THREE.Color(0x2878c8) },
+      bottomColor: { value: new THREE.Color(0x9fd3ea) },
+      offset: { value: 2.5 },
+      exponent: { value: 0.55 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vWorldPosition;
@@ -83,11 +83,11 @@ export function buildEnvironment(rng: Rng): EnvironmentHandles {
   const ambient = new THREE.AmbientLight(0xd0dce8, 0.52);
   group.add(ambient);
 
-  const hemi = new THREE.HemisphereLight(0xc8dcec, 0x6a7a58, 0.62);
+  const hemi = new THREE.HemisphereLight(0xa7cbe7, 0x5c713a, 0.7);
   group.add(hemi);
 
-  // Warm key sun
-  const sun = new THREE.DirectionalLight(0xffe8c8, 1.55);
+  // Warm afternoon sun (summer 16:00)
+  const sun = new THREE.DirectionalLight(0xffd79a, 1.7);
   sun.position.set(8, 12, 6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -136,12 +136,12 @@ export function buildEnvironment(rng: Rng): EnvironmentHandles {
   }
 
   function createSunBreath() {
-    const base = 1.55;
+    const base = 1.7;
     return {
       name: 'sun-breath',
       update(t: number) {
         sun.intensity = base + Math.sin(t * 0.08) * 0.1;
-        hemi.intensity = 0.62 + Math.sin(t * 0.06 + 1) * 0.04;
+        hemi.intensity = 0.7 + Math.sin(t * 0.06 + 1) * 0.04;
       },
     };
   }

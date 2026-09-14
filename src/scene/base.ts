@@ -6,7 +6,7 @@ import { Rng } from '../core/rng';
 
 /** 15 × 12 m elevated display plinth — 田 residential block. */
 export function buildDioramaBase(rng: Rng): THREE.Group {
-  const W = 15;
+  const W = 16;
   const D = 12;
   const H = 0.55;
   const EDGE = 0.22;

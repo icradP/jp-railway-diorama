@@ -8,236 +8,288 @@ export type HouseVariant = 'A' | 'B' | 'C';
 
 export interface HouseOptions {
   variant: HouseVariant;
-  /** Facing direction in radians (0 = +Z / toward viewer-north). */
   rotationY?: number;
   rng: Rng;
 }
 
 /**
- * Reusable Japanese 一户建 (detached house).
- * Two-story body, gabled tile roof, wide eaves, sliding door, balcony.
- * Variants differ in wall color, balcony, garage attachment, age details.
+ * Three visually distinct Japanese 一户建.
+ * A: traditional spacious  ·  B: modern compact  ·  C: Showa lived-in
  */
 export function buildIkkodate(opts: HouseOptions): THREE.Group {
   const { variant, rng } = opts;
   const rotY = opts.rotationY ?? 0;
+  if (variant === 'A') return place(buildHouseA(rng), rotY);
+  if (variant === 'B') return place(buildHouseB(rng), rotY);
+  return place(buildHouseC(rng), rotY);
+}
 
-  const g = new MeshBuilder(`House_${variant}`);
+function place(g: THREE.Group, rotY: number): THREE.Group {
+  g.rotation.y = rotY;
+  return g;
+}
 
-  // Dimensions (slightly different per variant)
-  const W = variant === 'B' ? 3.4 : 3.1; // width along local X
-  const D = variant === 'C' ? 2.8 : 2.6; // depth along local Z
-  const H1 = 1.55; // first floor
-  const H2 = 1.35; // second floor
-  const WALL = variant === 'A' ? 'houseWallA' : variant === 'B' ? 'houseWallB' : 'houseWallC';
-  const wallMat = materials.get(WALL);
+/** Traditional, larger, engawa + deep eaves + complex gable. */
+function buildHouseA(rng: Rng): THREE.Group {
+  const g = new MeshBuilder('HouseA');
+  const wall = materials.get('houseWallA');
   const trim = materials.get('houseTrim');
+  const trimD = materials.get('houseTrimDark');
   const roof = materials.get('houseRoof');
-  const roofEdge = materials.get('houseRoofEdge');
   const glass = materials.get('houseWindow');
-  const glassWarm = materials.get('houseWindowWarm');
-  const door = materials.get('houseDoor');
+  const warm = materials.get('houseWindowWarm');
 
-  const bodyY0 = 0.08; // foundation lip
-  const floor1Y = bodyY0 + H1 / 2;
-  const floor2Y = bodyY0 + H1 + H2 / 2;
+  const W = 3.6;
+  const D = 3.0;
+  const H1 = 1.6;
+  const H2 = 1.4;
 
-  // Foundation
-  g.add(ShapeFactory.box(W + 0.15, 0.16, D + 0.15), materials.get('concrete'), [0, 0.08, 0]);
-
-  // --- Floor 1 ---
-  g.add(ShapeFactory.box(W, H1, D), wallMat, [0, floor1Y, 0]);
-  // Corner posts (dark wood)
-  const postGeo = ShapeFactory.box(0.1, H1 + 0.05, 0.1);
+  g.add(ShapeFactory.box(W + 0.2, 0.18, D + 0.2), materials.get('concrete'), [0, 0.09, 0]);
+  // 1F
+  g.add(ShapeFactory.box(W, H1, D), wall, [0, 0.08 + H1 / 2, 0]);
+  // Dark wood posts + beam band
   for (const [px, pz] of [
-    [-W / 2 + 0.04, -D / 2 + 0.04],
-    [W / 2 - 0.04, -D / 2 + 0.04],
-    [-W / 2 + 0.04, D / 2 - 0.04],
-    [W / 2 - 0.04, D / 2 - 0.04],
+    [-W / 2 + 0.05, -D / 2 + 0.05],
+    [W / 2 - 0.05, -D / 2 + 0.05],
+    [-W / 2 + 0.05, D / 2 - 0.05],
+    [W / 2 - 0.05, D / 2 - 0.05],
   ] as const) {
-    g.add(postGeo, trim, [px, floor1Y, pz]);
+    g.add(ShapeFactory.box(0.12, H1, 0.12), trimD, [px, 0.08 + H1 / 2, pz]);
   }
-  // Horizontal beam
-  g.add(ShapeFactory.box(W + 0.06, 0.08, D + 0.06), trim, [0, bodyY0 + H1 - 0.02, 0]);
+  g.add(ShapeFactory.box(W + 0.08, 0.1, D + 0.08), trim, [0, 0.08 + H1 - 0.03, 0]);
 
-  // --- Floor 2 ---
-  g.add(ShapeFactory.box(W - 0.12, H2, D - 0.12), wallMat, [0, floor2Y, 0]);
-  const post2 = ShapeFactory.box(0.09, H2, 0.09);
-  for (const [px, pz] of [
-    [-W / 2 + 0.08, -D / 2 + 0.08],
-    [W / 2 - 0.08, -D / 2 + 0.08],
-    [-W / 2 + 0.08, D / 2 - 0.08],
-    [W / 2 - 0.08, D / 2 - 0.08],
-  ] as const) {
-    g.add(post2, trim, [px, floor2Y, pz]);
+  // 2F slightly inset
+  g.add(ShapeFactory.box(W - 0.2, H2, D - 0.2), wall, [0, 0.08 + H1 + H2 / 2, 0]);
+  g.add(ShapeFactory.box(W - 0.05, 0.08, D - 0.05), trim, [0, 0.08 + H1 + H2, 0]);
+
+  // Engawa (wooden veranda) along front
+  g.add(ShapeFactory.box(W * 0.85, 0.1, 0.7), materials.get('woodMid'), [0, 0.22, D / 2 + 0.4]);
+  for (let i = 0; i < 5; i++) {
+    g.add(ShapeFactory.box(0.08, 0.18, 0.08), trimD, [-1.4 + i * 0.7, 0.08, D / 2 + 0.4]);
   }
 
-  // --- Sliding glass door (front = +Z) ---
-  const doorY = bodyY0 + 0.55;
-  g.add(ShapeFactory.box(1.1, 1.05, 0.05), trim, [-0.35, doorY, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(1.0, 0.95, 0.04), glass, [-0.35, doorY, D / 2 + 0.05]);
-  // Door panel split
-  g.add(ShapeFactory.box(0.04, 0.95, 0.05), trim, [-0.35, doorY, D / 2 + 0.06]);
+  // Sliding glass doors
+  g.add(ShapeFactory.box(1.4, 1.15, 0.05), trim, [-0.3, 0.75, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(1.3, 1.05, 0.04), glass, [-0.3, 0.75, D / 2 + 0.05]);
+  g.add(ShapeFactory.box(0.05, 1.05, 0.06), trim, [-0.3, 0.75, D / 2 + 0.07]);
 
-  // --- Wooden entrance porch ---
-  g.add(ShapeFactory.box(1.4, 0.08, 0.7), materials.get('woodMid'), [-0.35, 0.12, D / 2 + 0.4]);
-  g.add(ShapeFactory.box(0.08, 0.12, 0.7), materials.get('woodDark'), [-0.95, 0.06, D / 2 + 0.4]);
-  g.add(ShapeFactory.box(0.08, 0.12, 0.7), materials.get('woodDark'), [0.25, 0.06, D / 2 + 0.4]);
-  // Small step
-  g.add(ShapeFactory.box(0.5, 0.06, 0.35), materials.get('concrete'), [-0.35, 0.03, D / 2 + 0.85]);
+  // 1F window
+  g.add(ShapeFactory.box(0.8, 0.55, 0.05), trim, [0.95, 1.05, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(0.7, 0.48, 0.03), glass, [0.95, 1.05, D / 2 + 0.05]);
 
-  // --- 1F window ---
-  g.add(ShapeFactory.box(0.7, 0.55, 0.05), trim, [0.7, bodyY0 + 0.95, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(0.62, 0.48, 0.03), glass, [0.7, bodyY0 + 0.95, D / 2 + 0.05]);
-
-  // --- 2F windows ---
-  for (const wx of [-0.7, 0.15, 0.85] as const) {
-    const wm = wx === 0.15 ? glassWarm : glass;
-    g.add(ShapeFactory.box(0.45, 0.5, 0.05), trim, [wx, floor2Y + 0.1, (D - 0.12) / 2 + 0.02]);
-    g.add(ShapeFactory.box(0.38, 0.42, 0.03), wm, [wx, floor2Y + 0.1, (D - 0.12) / 2 + 0.05]);
-    // Side windows
-    g.add(ShapeFactory.box(0.05, 0.45, 0.4), trim, [W / 2 - 0.04, floor2Y + 0.05, 0]);
-    g.add(ShapeFactory.box(0.03, 0.38, 0.32), glass, [W / 2 - 0.01, floor2Y + 0.05, 0]);
+  // 2F windows
+  for (const wx of [-0.9, 0.0, 0.9] as const) {
+    g.add(ShapeFactory.box(0.5, 0.55, 0.05), trim, [wx, 0.08 + H1 + 0.25, (D - 0.2) / 2 + 0.02]);
+    g.add(ShapeFactory.box(0.42, 0.46, 0.03), wx === 0 ? warm : glass, [wx, 0.08 + H1 + 0.25, (D - 0.2) / 2 + 0.05]);
   }
+  // Side windows
+  g.add(ShapeFactory.box(0.05, 0.5, 0.55), trim, [W / 2 - 0.02, 1.0, 0]);
+  g.add(ShapeFactory.box(0.03, 0.42, 0.46), glass, [W / 2 + 0.01, 1.0, 0]);
 
-  // --- Balcony (A & B) ---
-  if (variant !== 'C') {
-    const balY = bodyY0 + H1 + 0.05;
-    g.add(ShapeFactory.box(1.6, 0.06, 0.55), materials.get('concrete'), [0.2, balY, D / 2 + 0.35]);
-    // Rail
-    g.add(ShapeFactory.box(1.6, 0.35, 0.04), materials.get('metalGray'), [0.2, balY + 0.2, D / 2 + 0.6]);
-    for (let i = 0; i < 5; i++) {
-      g.add(ShapeFactory.box(0.03, 0.35, 0.03), materials.get('metalGray'), [-0.5 + i * 0.35, balY + 0.2, D / 2 + 0.6]);
-    }
-  }
-
-  // --- Roof: gabled with wide eaves ---
-  const roofY = bodyY0 + H1 + H2;
-  const ridge = 0.55;
-  const overhang = 0.38;
-  const roofLen = W + overhang * 2;
-  const halfD = D / 2 + overhang * 0.75;
-  // Two slabs
-  const slabGeo = ShapeFactory.box(roofLen, 0.07, halfD + 0.15);
-  const slabL = new THREE.Mesh(slabGeo, roof);
-  slabL.position.set(0, roofY + ridge * 0.45, -halfD * 0.35);
-  slabL.rotation.x = -0.38;
-  slabL.castShadow = true;
-  slabL.receiveShadow = true;
-  g.child(slabL);
-  const slabR = new THREE.Mesh(slabGeo, roof);
-  slabR.position.set(0, roofY + ridge * 0.45, halfD * 0.35);
-  slabR.rotation.x = 0.38;
-  slabR.castShadow = true;
-  slabR.receiveShadow = true;
-  g.child(slabR);
-
-  // Ridge
-  g.add(ShapeFactory.box(roofLen - 0.1, 0.08, 0.12), roofEdge, [0, roofY + ridge, 0]);
-  // Eave edge boards
-  g.add(ShapeFactory.box(roofLen, 0.05, 0.06), roofEdge, [0, roofY + 0.02, -halfD]);
-  g.add(ShapeFactory.box(roofLen, 0.05, 0.06), roofEdge, [0, roofY + 0.02, halfD]);
-  // Gable ends
-  const gableShape = new THREE.Shape();
-  gableShape.moveTo(-D / 2 - overhang * 0.5, 0);
-  gableShape.lineTo(D / 2 + overhang * 0.5, 0);
-  gableShape.lineTo(0, ridge);
-  gableShape.closePath();
-  const gableGeo = ShapeFactory.extrude(gableShape, 0.08);
-  gableGeo.center();
-  for (const side of [-1, 1] as const) {
-    const gab = new THREE.Mesh(gableGeo, wallMat);
-    gab.rotation.y = Math.PI / 2;
-    gab.position.set(side * (W / 2 + 0.02), roofY + ridge * 0.45, 0);
-    gab.castShadow = true;
-    g.child(gab);
-  }
-
-  // Tile suggestion strips on roof
+  // Balcony
+  const balY = 0.08 + H1 + 0.06;
+  g.add(ShapeFactory.box(1.8, 0.06, 0.55), materials.get('concrete'), [0.1, balY, D / 2 + 0.38]);
+  g.add(ShapeFactory.box(1.8, 0.38, 0.04), materials.get('metalGray'), [0.1, balY + 0.22, D / 2 + 0.62]);
   for (let i = 0; i < 6; i++) {
-    const t = (i / 5) * halfD;
-    g.add(
-      ShapeFactory.box(roofLen - 0.05, 0.02, 0.04),
-      roofEdge,
-      [0, roofY + 0.22 + (halfD * 0.35 - t) * 0.4, -t],
-      [-0.38, 0, 0],
-    );
-    g.add(
-      ShapeFactory.box(roofLen - 0.05, 0.02, 0.04),
-      roofEdge,
-      [0, roofY + 0.22 + (halfD * 0.35 - t) * 0.4, t],
-      [0.38, 0, 0],
-    );
+    g.add(ShapeFactory.box(0.03, 0.38, 0.03), materials.get('metalGray'), [-0.7 + i * 0.3, balY + 0.22, D / 2 + 0.62]);
   }
 
-  // --- AC outdoor unit (C & B) ---
-  if (variant !== 'A') {
-    g.add(ShapeFactory.box(0.45, 0.35, 0.25), materials.get('acUnit'), [-W / 2 - 0.15, 0.35, -0.4]);
-    g.add(ShapeFactory.box(0.48, 0.04, 0.28), materials.get('metalDark'), [-W / 2 - 0.15, 0.54, -0.4]);
+  // Deep gabled roof
+  const roofY = 0.08 + H1 + H2;
+  const ridge = 0.62;
+  const ov = 0.48;
+  const slab = ShapeFactory.box(W + ov * 2, 0.08, D / 2 + ov * 0.85);
+  const L = new THREE.Mesh(slab, roof);
+  L.position.set(0, roofY + ridge * 0.42, -(D / 2 + ov * 0.3));
+  L.rotation.x = -0.4;
+  L.castShadow = true;
+  L.receiveShadow = true;
+  g.child(L);
+  const R = new THREE.Mesh(slab, roof);
+  R.position.set(0, roofY + ridge * 0.42, D / 2 + ov * 0.3);
+  R.rotation.x = 0.4;
+  R.castShadow = true;
+  R.receiveShadow = true;
+  g.child(R);
+  g.add(ShapeFactory.box(W + ov * 1.5, 0.08, 0.12), materials.get('houseRoofEdge'), [0, roofY + ridge, 0]);
+  // Gable ends
+  const gable = new THREE.Shape();
+  gable.moveTo(-D / 2 - ov * 0.4, 0);
+  gable.lineTo(D / 2 + ov * 0.4, 0);
+  gable.lineTo(0, ridge);
+  gable.closePath();
+  const gg = ShapeFactory.extrude(gable, 0.1);
+  gg.center();
+  for (const s of [-1, 1] as const) {
+    const m = new THREE.Mesh(gg, wall);
+    m.rotation.y = Math.PI / 2;
+    m.position.set(s * (W / 2 + 0.04), roofY + ridge * 0.42, 0);
+    m.castShadow = true;
+    g.child(m);
   }
-
-  // --- Garage attachment (B) ---
-  if (variant === 'B') {
-    const gar = new MeshBuilder('Garage');
-    gar.add(ShapeFactory.box(2.0, 1.3, 2.2), materials.get('houseShutter'), [0, 0.65, 0]);
-    gar.add(ShapeFactory.box(2.15, 0.08, 2.35), roof, [0, 1.35, 0]);
-    // Garage door
-    gar.add(ShapeFactory.box(1.5, 1.0, 0.06), materials.get('houseShutter'), [0, 0.55, 1.12]);
-    // Slats
-    for (let i = 0; i < 4; i++) {
-      gar.add(ShapeFactory.box(1.4, 0.04, 0.04), materials.get('metalDark'), [0, 0.25 + i * 0.22, 1.15]);
-    }
-    gar.transform([W / 2 + 1.1, 0, -0.2]);
-    g.child(gar.build());
-  }
-
-  // --- Small storage shed (C) ---
-  if (variant === 'C') {
-    const shed = new MeshBuilder('Shed');
-    shed.add(ShapeFactory.box(1.1, 0.9, 1.0), materials.get('shedWall'), [0, 0.45, 0]);
-    shed.add(ShapeFactory.box(1.25, 0.08, 1.15), roof, [0, 0.95, 0], [0, 0, 0.08]);
-    shed.add(ShapeFactory.box(0.45, 0.7, 0.05), materials.get('houseDoor'), [0, 0.35, 0.52]);
-    shed.transform([-W / 2 - 0.75, 0, 0.3]);
-    g.child(shed.build());
-  }
-
-  // Slight handmade irregularity
-  g.transform(undefined, [0, rotY, 0]);
-  // tiny random yaw already in rotY; add micro position jitter later at place time
 
   void rng;
-  void mat4;
-  void door;
   return g.build();
 }
 
-/** Simple low-poly Japanese kei car. */
-export function buildKeiCar(colorBody = 'carBody'): THREE.Group {
+/** Modern compact — boxy, mixed wall panels, lean-to carport. */
+function buildHouseB(rng: Rng): THREE.Group {
+  const g = new MeshBuilder('HouseB');
+  const wall = materials.get('houseWallB');
+  const wall2 = materials.get('houseWallB2');
+  const roof = materials.get('houseRoofB');
+  const glass = materials.get('houseWindow');
+  const metal = materials.get('houseShutter');
+
+  const W = 2.6;
+  const D = 2.4;
+  const H1 = 1.5;
+  const H2 = 1.25;
+
+  g.add(ShapeFactory.box(W + 0.12, 0.14, D + 0.12), materials.get('concrete'), [0, 0.07, 0]);
+
+  // 1F with accent panel
+  g.add(ShapeFactory.box(W, H1, D), wall, [0, 0.07 + H1 / 2, 0]);
+  g.add(ShapeFactory.box(0.9, H1 - 0.1, 0.06), wall2, [-0.7, 0.07 + H1 / 2, D / 2 + 0.02]);
+
+  // 2F
+  g.add(ShapeFactory.box(W + 0.15, H2, D + 0.1), wall2, [0, 0.07 + H1 + H2 / 2, 0]);
+  // Thin metal band between floors
+  g.add(ShapeFactory.box(W + 0.18, 0.06, D + 0.12), metal, [0, 0.07 + H1, 0]);
+
+  // Flat-ish roof with slight mono-pitch
+  const roofY = 0.07 + H1 + H2;
+  g.add(ShapeFactory.box(W + 0.35, 0.08, D + 0.3), roof, [0, roofY + 0.04, 0]);
+  g.add(ShapeFactory.box(W + 0.1, 0.05, D + 0.05), materials.get('metalDark'), [0, roofY + 0.1, 0]);
+  // Parapet
+  g.add(ShapeFactory.box(W + 0.35, 0.12, 0.06), roof, [0, roofY + 0.14, (D + 0.3) / 2]);
+  g.add(ShapeFactory.box(W + 0.35, 0.12, 0.06), roof, [0, roofY + 0.14, -(D + 0.3) / 2]);
+
+  // Large modern windows
+  g.add(ShapeFactory.box(1.2, 0.95, 0.05), metal, [-0.2, 0.85, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(1.1, 0.85, 0.03), glass, [-0.2, 0.85, D / 2 + 0.05]);
+  // Entrance recessed
+  g.add(ShapeFactory.box(0.7, 1.15, 0.15), materials.get('houseDoor'), [0.75, 0.65, D / 2 - 0.05]);
+  g.add(ShapeFactory.box(0.5, 0.4, 0.03), glass, [0.75, 1.0, D / 2 + 0.03]);
+
+  // 2F ribbon window
+  g.add(ShapeFactory.box(1.6, 0.45, 0.04), metal, [0, 0.07 + H1 + 0.35, (D + 0.1) / 2 + 0.02]);
+  g.add(ShapeFactory.box(1.5, 0.38, 0.03), glass, [0, 0.07 + H1 + 0.35, (D + 0.1) / 2 + 0.05]);
+  // Side slit
+  g.add(ShapeFactory.box(0.04, 0.7, 0.35), glass, [W / 2 + 0.09, 1.0, 0.3]);
+
+  // Small balcony
+  g.add(ShapeFactory.box(1.2, 0.05, 0.4), metal, [-0.2, 0.07 + H1 + 0.05, D / 2 + 0.3]);
+  g.add(ShapeFactory.box(1.2, 0.3, 0.03), materials.get('metalGray'), [-0.2, 0.07 + H1 + 0.22, D / 2 + 0.48]);
+
+  // Lean-to carport (attached, open)
+  const cp = new MeshBuilder('Carport');
+  cp.add(ShapeFactory.box(0.08, 1.35, 2.0), metal, [0, 0.68, 0]);
+  cp.add(ShapeFactory.box(0.08, 1.35, 2.0), metal, [2.1, 0.68, 0]);
+  cp.add(ShapeFactory.box(2.2, 0.06, 2.1), roof, [1.05, 1.38, 0], [0, 0, -0.08]);
+  cp.transform([W / 2 + 0.1, 0, -0.15]);
+  g.child(cp.build());
+
+  // AC
+  g.add(ShapeFactory.box(0.4, 0.32, 0.22), materials.get('acUnit'), [-W / 2 - 0.15, 0.4, -0.3]);
+
+  void rng;
+  return g.build();
+}
+
+/** Showa-era — lower pitch, wood siding, lived-in clutter. */
+function buildHouseC(rng: Rng): THREE.Group {
+  const g = new MeshBuilder('HouseC');
+  const wall = materials.get('houseWallC');
+  const wood = materials.get('houseWoodC');
+  const roof = materials.get('houseRoofC');
+  const glass = materials.get('houseWindow');
+  const trim = materials.get('houseTrimDark');
+
+  const W = 2.9;
+  const D = 2.5;
+  const H1 = 1.45;
+  const H2 = 1.2;
+
+  g.add(ShapeFactory.box(W + 0.15, 0.14, D + 0.15), materials.get('concrete'), [0, 0.07, 0]);
+
+  // 1F cream + wood lower band
+  g.add(ShapeFactory.box(W, H1, D), wall, [0, 0.07 + H1 / 2, 0]);
+  g.add(ShapeFactory.box(W + 0.02, 0.55, D + 0.02), wood, [0, 0.07 + 0.3, 0]);
+  // Horizontal siding suggestion
+  for (let i = 0; i < 3; i++) {
+    g.add(ShapeFactory.box(W + 0.04, 0.03, D + 0.04), trim, [0, 0.18 + i * 0.16, 0]);
+  }
+
+  // 2F
+  g.add(ShapeFactory.box(W - 0.08, H2, D - 0.08), wall, [0, 0.07 + H1 + H2 / 2, 0]);
+  g.add(ShapeFactory.box(W - 0.05, 0.5, D - 0.05), wood, [0, 0.07 + H1 + 0.25, 0]);
+
+  // Low-pitch gable
+  const roofY = 0.07 + H1 + H2;
+  const ridge = 0.42;
+  const ov = 0.35;
+  const slab = ShapeFactory.box(W + ov * 2, 0.07, D / 2 + ov * 0.7);
+  const L = new THREE.Mesh(slab, roof);
+  L.position.set(0, roofY + ridge * 0.4, -(D / 2 + ov * 0.25));
+  L.rotation.x = -0.32;
+  L.castShadow = true;
+  L.receiveShadow = true;
+  g.child(L);
+  const R = new THREE.Mesh(slab, roof);
+  R.position.set(0, roofY + ridge * 0.4, D / 2 + ov * 0.25);
+  R.rotation.x = 0.32;
+  R.castShadow = true;
+  R.receiveShadow = true;
+  g.child(R);
+  g.add(ShapeFactory.box(W + ov, 0.06, 0.1), materials.get('houseRoofEdge'), [0, roofY + ridge, 0]);
+
+  // Entrance with small canopy
+  g.add(ShapeFactory.box(0.7, 1.1, 0.06), materials.get('houseDoor'), [-0.2, 0.62, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(1.0, 0.05, 0.55), roof, [-0.2, 1.3, D / 2 + 0.28], [0.15, 0, 0]);
+  g.add(ShapeFactory.box(0.06, 1.0, 0.06), trim, [-0.7, 0.5, D / 2 + 0.45]);
+
+  // Windows
+  g.add(ShapeFactory.box(0.75, 0.5, 0.05), trim, [0.85, 1.0, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(0.66, 0.42, 0.03), glass, [0.85, 1.0, D / 2 + 0.05]);
+  for (const wx of [-0.7, 0.4] as const) {
+    g.add(ShapeFactory.box(0.42, 0.45, 0.05), trim, [wx, 0.07 + H1 + 0.35, (D - 0.08) / 2 + 0.02]);
+    g.add(ShapeFactory.box(0.34, 0.36, 0.03), glass, [wx, 0.07 + H1 + 0.35, (D - 0.08) / 2 + 0.05]);
+  }
+  // Side
+  g.add(ShapeFactory.box(0.05, 0.45, 0.5), trim, [-W / 2 + 0.02, 1.0, 0.2]);
+  g.add(ShapeFactory.box(0.03, 0.38, 0.42), glass, [-W / 2 - 0.01, 1.0, 0.2]);
+
+  // AC + pipe
+  g.add(ShapeFactory.box(0.42, 0.34, 0.24), materials.get('acUnit'), [W / 2 + 0.15, 0.45, -0.5]);
+  g.add(ShapeFactory.cylinder(0.03, 0.03, 0.8, 5), materials.get('metalGray'), [W / 2 + 0.15, 0.9, -0.5]);
+
+  // Small storage lean-to at back
+  g.add(ShapeFactory.box(1.0, 0.85, 0.9), materials.get('shedWall'), [-W / 2 - 0.6, 0.42, -0.3]);
+  g.add(ShapeFactory.box(1.15, 0.06, 1.0), roof, [-W / 2 - 0.6, 0.9, -0.3], [0, 0, 0.1]);
+
+  void rng;
+  return g.build();
+}
+
+/** Simple low-poly kei car. */
+export function buildKeiCar(): THREE.Group {
   const c = new MeshBuilder('KeiCar');
-  const body = materials.get(colorBody);
+  const body = materials.get('carBody');
   const glass = materials.get('houseWindow');
   const tire = materials.get('bicycleTire');
   const metal = materials.get('metalGray');
 
-  // Cabin box (tall kei proportions)
   c.add(ShapeFactory.box(1.0, 0.55, 0.72), body, [0, 0.42, 0]);
-  // Lower body
   c.add(ShapeFactory.box(1.1, 0.28, 0.78), body, [0, 0.22, 0]);
-  // Cabin greenhouse
   c.add(ShapeFactory.box(0.7, 0.35, 0.68), body, [-0.05, 0.75, 0]);
-  // Windows
   c.add(ShapeFactory.box(0.55, 0.28, 0.7), glass, [-0.05, 0.75, 0]);
-  // Windshield
   c.add(ShapeFactory.box(0.08, 0.3, 0.6), glass, [0.35, 0.7, 0], [0, 0, -0.4]);
-  // Roof
   c.add(ShapeFactory.box(0.72, 0.05, 0.7), materials.get('metalDark'), [-0.05, 0.94, 0]);
-  // Bumpers
   c.add(ShapeFactory.box(0.08, 0.18, 0.72), metal, [0.56, 0.2, 0]);
   c.add(ShapeFactory.box(0.08, 0.18, 0.72), metal, [-0.56, 0.2, 0]);
-  // Headlights
   c.add(ShapeFactory.box(0.04, 0.08, 0.12), materials.get('trainHeadlight'), [0.58, 0.35, 0.25]);
   c.add(ShapeFactory.box(0.04, 0.08, 0.12), materials.get('trainHeadlight'), [0.58, 0.35, -0.25]);
-  // Wheels
   const wheelGeo = ShapeFactory.cylinder(0.16, 0.16, 0.1, 8);
   wheelGeo.rotateX(Math.PI / 2);
   for (const wx of [0.32, -0.32] as const) {
@@ -248,223 +300,241 @@ export function buildKeiCar(colorBody = 'carBody'): THREE.Group {
   return c.build();
 }
 
+/** Three giant concrete pipes: two base + one on top, mouths toward road. */
+function buildConcretePipes(rng: Rng): THREE.Group {
+  const p = new MeshBuilder('ConcretePipes');
+  const L = 2.2;
+  const R = 0.55;
+  const tubeGeo = new THREE.CylinderGeometry(R, R, L, 12, 1, true);
+  tubeGeo.rotateZ(Math.PI / 2); // axis along X
+
+  function pipe(x: number, y: number, z: number): void {
+    const tube = new THREE.Mesh(tubeGeo, materials.get('pipeConcrete'));
+    tube.position.set(x, y, z);
+    tube.castShadow = true;
+    tube.receiveShadow = true;
+    p.child(tube);
+    // Inner dark tube (slightly smaller, open)
+    const inner = new THREE.CylinderGeometry(R * 0.88, R * 0.88, L * 0.98, 12, 1, true);
+    inner.rotateZ(Math.PI / 2);
+    const im = new THREE.Mesh(inner, materials.get('pipeInner'));
+    im.position.set(x, y, z);
+    p.child(im);
+    // Rims
+    for (const s of [-1, 1] as const) {
+      const rim = new THREE.TorusGeometry(R * 0.96, 0.05, 6, 12);
+      rim.rotateY(Math.PI / 2);
+      const rm = new THREE.Mesh(rim, materials.get('pipeRim'));
+      rm.position.set(x + (s * L) / 2, y, z);
+      rm.castShadow = true;
+      p.child(rm);
+    }
+  }
+
+  // Mouths toward road (+X toward center of lot / road at x=0)
+  // Bottom two, top one
+  const CX = -4.6;
+  const CZ = -3.8;
+  pipe(CX, R, CZ - 0.65);
+  pipe(CX, R, CZ + 0.65);
+  pipe(CX, R * 2 + 0.04, CZ);
+
+  // Dirt pad under pipes
+  p.add(ShapeFactory.box(2.6, 0.04, 2.2), materials.get('dirtLight'), [CX, 0.02, CZ]);
+  void rng;
+  return p.build();
+}
+
 /**
- * Residential quadrant layout builder — places houses + yards around the 田 crossing.
- * Base is 15×12; railway along X at z=0, road along Z at x=0.
+ * Compact residential 田-block layout.
+ * Base 16×12 · railway on X · road on Z · houses closer to the street.
  */
 export function buildResidential(rng: Rng): THREE.Group {
   const root = new THREE.Group();
   root.name = 'Residential';
 
-  // ========== House A: top-left (−X, +Z) ==========
-  const houseA = buildIkkodate({ variant: 'A', rotationY: 0.08, rng });
-  houseA.scale.setScalar(0.82);
-  houseA.position.set(-4.8, 0, 3.6);
+  // House A — traditional, top-left, closer to road/rail
+  const houseA = buildIkkodate({ variant: 'A', rotationY: 0.1, rng });
+  houseA.scale.setScalar(0.88);
+  houseA.position.set(-4.2, 0, 3.1);
   root.add(houseA);
-  root.add(buildYard(rng, -4.8, 3.6, 'A'));
+  root.add(buildYard(rng, -4.2, 3.1, 'A'));
 
-  // ========== House B: top-right (+X, +Z) ==========
-  const houseB = buildIkkodate({ variant: 'B', rotationY: -0.12, rng });
-  houseB.scale.setScalar(0.8);
-  houseB.position.set(4.4, 0, 3.4);
+  // House B — modern compact, top-right
+  const houseB = buildIkkodate({ variant: 'B', rotationY: -0.15, rng });
+  houseB.scale.setScalar(0.9);
+  houseB.position.set(3.9, 0, 3.0);
   root.add(houseB);
-  root.add(buildYard(rng, 4.4, 3.4, 'B'));
-  // Kei car in driveway
+  root.add(buildYard(rng, 3.9, 3.0, 'B'));
   const car = buildKeiCar();
-  car.position.set(3.5, 0, 1.45);
-  car.rotation.y = Math.PI / 2 + 0.15;
+  car.position.set(3.3, 0, 1.35);
+  car.rotation.y = Math.PI / 2 + 0.2;
   root.add(car);
 
-  // ========== House C: bottom-right (+X, −Z) ==========
-  const houseC = buildIkkodate({ variant: 'C', rotationY: Math.PI - 0.1, rng });
-  houseC.scale.setScalar(0.78);
-  houseC.position.set(4.6, 0, -3.8);
+  // House C — Showa, bottom-right
+  const houseC = buildIkkodate({ variant: 'C', rotationY: Math.PI - 0.08, rng });
+  houseC.scale.setScalar(0.88);
+  houseC.position.set(4.1, 0, -3.3);
   root.add(houseC);
-  root.add(buildYard(rng, 4.6, -3.8, 'C'));
+  root.add(buildYard(rng, 4.1, -3.3, 'C'));
 
-  // ========== Empty lot: bottom-left (−X, −Z) ==========
-  // Station halt sits on the track edge of this quadrant (see station.ts)
+  // Empty lot + concrete pipes, bottom-left
   root.add(buildEmptyLot(rng));
+  root.add(buildConcretePipes(rng));
 
-  // Shared: block walls along lot edges (not full perimeter — open feel)
   root.add(buildBlockWalls(rng));
-
   return root;
 }
 
 function buildYard(rng: Rng, hx: number, hz: number, variant: HouseVariant): THREE.Group {
   const y = new MeshBuilder(`Yard_${variant}`);
+  const pathDir = hx < 0 ? 1 : -1;
 
-  // Stone path from house toward road
-  const pathDir = hx < 0 ? 1 : -1; // toward center
-  for (let i = 0; i < 4; i++) {
+  // Stone path
+  for (let i = 0; i < 3; i++) {
     y.add(
-      ShapeFactory.box(0.35, 0.03, 0.28),
+      ShapeFactory.box(0.32, 0.03, 0.26),
       materials.get('tileWalk'),
-      [hx + pathDir * (1.8 + i * 0.45), 0.02, hz + rng.range(-0.15, 0.15)],
-      [0, rng.range(-0.2, 0.2), 0],
+      [hx + pathDir * (1.5 + i * 0.4), 0.02, hz + rng.range(-0.1, 0.1)],
+      [0, rng.range(-0.15, 0.15), 0],
     );
   }
 
-  // Flower bed
-  y.add(ShapeFactory.box(1.2, 0.12, 0.5), materials.get('soilBed'), [hx - 1.6, 0.06, hz + 1.6]);
-  for (let i = 0; i < 5; i++) {
-    const fx = hx - 1.6 + rng.range(-0.45, 0.45);
-    const fz = hz + 1.6 + rng.range(-0.15, 0.15);
-    y.add(ShapeFactory.cylinder(0.015, 0.015, 0.18, 4), materials.get('grassBlade'), [fx, 0.2, fz]);
-    y.add(
-      ShapeFactory.ico(0.05, 0),
-      rng.bool() ? materials.get('flowerPink') : materials.get('flowerYellow'),
-      [fx, 0.3, fz],
-    );
-  }
-
-  // Clothesline (A & C)
-  if (variant !== 'B') {
-    const cl = new MeshBuilder('Clothesline');
-    cl.add(ShapeFactory.cylinder(0.03, 0.035, 1.5, 5), materials.get('metalGray'), [0, 0.75, 0]);
-    cl.add(ShapeFactory.cylinder(0.03, 0.035, 1.5, 5), materials.get('metalGray'), [2.0, 0.75, 0]);
-    // Line
-    const lineGeo = ShapeFactory.catenary(
-      new THREE.Vector3(0, 1.45, 0),
-      new THREE.Vector3(2.0, 1.45, 0),
-      0.12,
-      8,
-    );
-    cl.add(lineGeo, materials.get('wire'));
-    // Hanging sheets
-    const sheetGeo = ShapeFactory.plane(0.55, 0.7);
-    for (let i = 0; i < 3; i++) {
-      const sx = 0.35 + i * 0.55;
-      const sheet = new THREE.Mesh(
-        sheetGeo,
-        i === 1 ? materials.get('clothBlue') : materials.get('clothWhite'),
+  if (variant === 'A') {
+    // Plum + maple + hydrangea + bamboo
+    y.add(ShapeFactory.box(1.3, 0.14, 0.45), materials.get('soilBed'), [hx - 1.5, 0.07, hz + 1.4]);
+    for (let i = 0; i < 4; i++) {
+      const fx = hx - 1.5 + rng.range(-0.5, 0.5);
+      const fz = hz + 1.4 + rng.range(-0.12, 0.12);
+      y.add(ShapeFactory.ico(0.16, 0), materials.get(rng.pick(['hydrangea', 'hydrangeaLight', 'hydrangeaPale'])), [fx, 0.22, fz]);
+    }
+    // Small plum
+    y.add(ShapeFactory.cylinder(0.05, 0.07, 0.9, 5), materials.get('trunk'), [hx + 1.8, 0.45, hz + 1.5]);
+    y.add(ShapeFactory.ico(0.38, 0), materials.get('plum'), [hx + 1.8, 1.05, hz + 1.5]);
+    y.add(ShapeFactory.ico(0.25, 0), materials.get('leafD'), [hx + 2.0, 1.25, hz + 1.4]);
+    // Bamboo cluster
+    for (let i = 0; i < 5; i++) {
+      const bh = rng.range(1.1, 1.6);
+      y.add(
+        ShapeFactory.cylinder(0.02, 0.025, bh, 5),
+        materials.get('bamboo'),
+        [hx - 2.0 + rng.range(-0.2, 0.2), bh / 2, hz - 1.0 + rng.range(-0.2, 0.2)],
       );
-      sheet.position.set(sx, 1.05, 0);
+    }
+    // Clothesline
+    const cl = new MeshBuilder('ClothesA');
+    cl.add(ShapeFactory.cylinder(0.025, 0.03, 1.4, 5), materials.get('metalGray'), [0, 0.7, 0]);
+    cl.add(ShapeFactory.cylinder(0.025, 0.03, 1.4, 5), materials.get('metalGray'), [1.7, 0.7, 0]);
+    cl.add(ShapeFactory.catenary(new THREE.Vector3(0, 1.35, 0), new THREE.Vector3(1.7, 1.35, 0), 0.1, 8), materials.get('wire'));
+    for (let i = 0; i < 2; i++) {
+      const sheet = new THREE.Mesh(ShapeFactory.plane(0.5, 0.6), i === 1 ? materials.get('clothBlue') : materials.get('clothWhite'));
+      sheet.position.set(0.45 + i * 0.6, 1.0, 0);
+      sheet.userData.windPhase = rng.range(0, 6);
+      sheet.userData.isCloth = true;
       sheet.castShadow = true;
       cl.child(sheet);
-      // Register gentle wind later via userData
-      sheet.userData.windPhase = rng.range(0, Math.PI * 2);
-      sheet.userData.isCloth = true;
     }
-    cl.transform([hx + (variant === 'A' ? -2.2 : -2.0), 0, hz - 1.5]);
+    cl.transform([hx - 1.8, 0, hz - 1.4]);
+    y.child(cl.build());
+  } else if (variant === 'B') {
+    // Pots + small bamboo + vine
+    for (const [px, pz, mat] of [
+      [hx + 1.3, hz + 1.2, 'potA'],
+      [hx + 1.55, hz + 0.9, 'potB'],
+      [hx - 1.3, hz + 1.3, 'potC'],
+    ] as const) {
+      y.add(ShapeFactory.cylinder(0.11, 0.09, 0.16, 7), materials.get(mat), [px, 0.08, pz]);
+      y.add(ShapeFactory.ico(0.13, 0), materials.get(rng.pick(['leafD', 'leafE', 'hedge'])), [px, 0.24, pz]);
+    }
+    for (let i = 0; i < 3; i++) {
+      y.add(
+        ShapeFactory.cylinder(0.018, 0.022, 0.9, 5),
+        materials.get('bamboo'),
+        [hx - 1.4 + i * 0.12, 0.45, hz - 0.9],
+      );
+    }
+  } else {
+    // Persimmon + pots + hose
+    y.add(ShapeFactory.cylinder(0.06, 0.09, 1.1, 5), materials.get('trunk'), [hx - 1.6, 0.55, hz - 1.2]);
+    y.add(ShapeFactory.ico(0.42, 0), materials.get('persimmon'), [hx - 1.6, 1.25, hz - 1.2]);
+    y.add(ShapeFactory.ico(0.22, 0), materials.get('leafD'), [hx - 1.35, 1.4, hz - 1.0]);
+    for (let i = 0; i < 3; i++) {
+      y.add(ShapeFactory.ico(0.04, 0), materials.get('persimmonFruit'), [hx - 1.7 + rng.range(-0.2, 0.2), 1.15 + rng.range(-0.1, 0.15), hz - 1.15]);
+    }
+    y.add(ShapeFactory.box(1.0, 0.12, 0.4), materials.get('soilBed'), [hx + 1.4, 0.06, hz + 1.1]);
+    y.add(ShapeFactory.torus(0.14, 0.025, 6, 12), materials.get('leafC'), [hx + 1.0, 0.07, hz - 1.0], [-Math.PI / 2, 0, 0]);
+    // Clothesline
+    const cl = new MeshBuilder('ClothesC');
+    cl.add(ShapeFactory.cylinder(0.025, 0.03, 1.3, 5), materials.get('metalGray'), [0, 0.65, 0]);
+    cl.add(ShapeFactory.cylinder(0.025, 0.03, 1.3, 5), materials.get('metalGray'), [1.5, 0.65, 0]);
+    cl.add(ShapeFactory.catenary(new THREE.Vector3(0, 1.25, 0), new THREE.Vector3(1.5, 1.25, 0), 0.08, 8), materials.get('wire'));
+    const sheet = new THREE.Mesh(ShapeFactory.plane(0.45, 0.55), materials.get('clothWhite'));
+    sheet.position.set(0.75, 0.95, 0);
+    sheet.userData.windPhase = rng.range(0, 6);
+    sheet.userData.isCloth = true;
+    cl.child(sheet);
+    cl.transform([hx + 1.2, 0, hz - 1.3]);
     y.child(cl.build());
   }
 
-  // Mailbox
-  const mb = new MeshBuilder('Mailbox');
-  mb.add(ShapeFactory.box(0.22, 0.35, 0.12), materials.get('mailBox'), [0, 0.35, 0]);
-  mb.add(ShapeFactory.box(0.24, 0.04, 0.14), materials.get('metalDark'), [0, 0.55, 0]);
-  mb.add(ShapeFactory.box(0.04, 0.35, 0.04), materials.get('metalGray'), [0, 0.18, 0]);
-  mb.transform([hx + (hx < 0 ? 2.0 : -2.0), 0, hz + 1.8]);
-  y.child(mb.build());
-
-  // Small trash bin
-  y.add(ShapeFactory.cylinder(0.12, 0.1, 0.3, 7), materials.get('trash'), [hx + 1.4, 0.15, hz + 1.2]);
-
-  // Potted plant
-  y.add(ShapeFactory.cylinder(0.12, 0.1, 0.18, 7), materials.get('signRed'), [hx + 1.1, 0.09, hz + 1.9]);
-  y.add(ShapeFactory.ico(0.14, 0), materials.get('leafA'), [hx + 1.1, 0.3, hz + 1.9]);
-
-  // Hose coil (C)
-  if (variant === 'C') {
-    y.add(
-      ShapeFactory.torus(0.15, 0.03, 6, 12),
-      materials.get('leafC'),
-      [hx - 1.5, 0.08, hz - 1.2],
-      [-Math.PI / 2, 0, 0],
-    );
-  }
-
-  // Second bike near entrance (A)
-  if (variant === 'A') {
-    // placed by props if needed — skip duplicate
-  }
+  // Mailbox + trash
+  y.add(ShapeFactory.box(0.2, 0.32, 0.1), materials.get('mailBox'), [hx + (hx < 0 ? 1.7 : -1.7), 0.32, hz + 1.5]);
+  y.add(ShapeFactory.box(0.04, 0.32, 0.04), materials.get('metalGray'), [hx + (hx < 0 ? 1.7 : -1.7), 0.16, hz + 1.5]);
+  y.add(ShapeFactory.cylinder(0.1, 0.09, 0.28, 7), materials.get('trash'), [hx + 1.1, 0.14, hz + 1.3]);
 
   return y.build();
 }
 
 function buildEmptyLot(rng: Rng): THREE.Group {
   const lot = new MeshBuilder('EmptyLot');
-  // Center of bottom-left quadrant: roughly x -4, z -3.5
-  const CX = -4.2;
+  const CX = -4.4;
   const CZ = -3.6;
 
-  // Grass is already on base — add dirt patches (bare earth of vacant lot)
-  const dirtGeo = ShapeFactory.plane(2.2, 1.6);
+  const dirtGeo = ShapeFactory.plane(2.0, 1.5);
   const dirtMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 5; i++) {
     dirtMats.push(
-      mat4(
-        CX + rng.range(-2.2, 2.2),
-        0.012,
-        CZ + rng.range(-1.8, 1.8),
-        -Math.PI / 2,
-        0,
-        rng.range(0, Math.PI),
-        rng.range(0.5, 1.1),
-        rng.range(0.5, 1),
-        1,
-      ),
+      mat4(CX + rng.range(-2.0, 2.0), 0.012, CZ + rng.range(-1.6, 1.6), -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.5, 1.0), rng.range(0.5, 0.9), 1),
     );
   }
   lot.instance(dirtGeo, materials.get('dirt'), dirtMats, false, true);
 
-  // Dry grass tufts
-  const tuftGeo = ShapeFactory.cone(0.04, 0.2, 4);
-  tuftGeo.translate(0, 0.1, 0);
+  // Healthy summer grass (not dry)
+  const tuftGeo = ShapeFactory.cone(0.035, 0.18, 4);
+  tuftGeo.translate(0, 0.09, 0);
   const tuftMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 50; i++) {
-    const x = CX + rng.range(-2.6, 2.6);
-    const z = CZ + rng.range(-2.0, 2.0);
-    if (Math.abs(x) < 1.6 || Math.abs(z) < 1.2) continue;
-    tuftMats.push(mat4(x, 0.02, z, 0, rng.range(0, Math.PI), rng.range(-0.2, 0.2), rng.range(0.8, 1.4), rng.range(0.8, 1.6), rng.range(0.8, 1.3)));
+  for (let i = 0; i < 40; i++) {
+    const x = CX + rng.range(-2.4, 2.4);
+    const z = CZ + rng.range(-1.8, 1.8);
+    if (Math.abs(x) < 1.5 || Math.abs(z) < 1.1) continue;
+    tuftMats.push(mat4(x, 0.02, z, 0, rng.range(0, Math.PI), 0, rng.range(0.8, 1.3), rng.range(0.9, 1.4), rng.range(0.8, 1.2)));
   }
-  lot.instance(tuftGeo, materials.get('grassDry'), tuftMats, false, true);
+  lot.instance(tuftGeo, materials.get('grassBlade'), tuftMats, false, true);
 
-  // A few larger weed clumps
-  const weedGeo = ShapeFactory.cone(0.06, 0.28, 4);
-  weedGeo.translate(0, 0.14, 0);
-  const weedMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 12; i++) {
-    weedMats.push(mat4(CX + rng.range(-2.4, 2.4), 0.02, CZ + rng.range(-1.8, 1.8), 0, rng.range(0, 3), 0, rng.range(0.7, 1.3), rng.range(0.9, 1.5), rng.range(0.7, 1.2)));
-  }
-  lot.instance(weedGeo, materials.get('leafC'), weedMats);
-
-  // Stones
-  const stoneGeo = ShapeFactory.ico(0.1, 0);
-  const stoneMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 8; i++) {
-    const s = rng.range(0.5, 1.3);
-    stoneMats.push(mat4(CX + rng.range(-2.5, 2.5), 0.05 * s, CZ + rng.range(-1.8, 1.8), 0, rng.range(0, 3), 0, s, s * 0.6, s));
-  }
-  lot.instance(stoneGeo, materials.get('stone'), stoneMats);
-
-  // Simple wooden fence posts (partial, not enclosing)
-  for (let i = 0; i < 5; i++) {
-    lot.add(ShapeFactory.box(0.06, 0.45, 0.06), materials.get('fenceWood'), [CX - 2.8, 0.22, CZ - 1.5 + i * 0.7]);
-  }
-  lot.add(
-    ShapeFactory.box(0.04, 0.04, 3.2),
-    materials.get('fenceWood'),
-    [CX - 2.8, 0.35, CZ - 0.1],
-  );
-
-  // One medium tree on the lot (Doraemon vacant-lot tree)
+  // Big vacant-lot tree (3-layer crown)
   const tree = new MeshBuilder('LotTree');
-  tree.add(ShapeFactory.cylinder(0.08, 0.12, 1.4, 6), materials.get('trunk'), [0, 0.7, 0]);
-  tree.add(ShapeFactory.ico(0.55, 0), materials.get('leafA'), [0, 1.6, 0], [0, 0.4, 0]);
-  tree.add(ShapeFactory.ico(0.35, 0), materials.get('leafB'), [0.3, 1.85, 0.1]);
-  tree.add(ShapeFactory.ico(0.3, 0), materials.get('leafC'), [-0.25, 1.7, -0.15]);
-  tree.transform([CX + 1.8, 0, CZ + 0.8]);
+  tree.add(ShapeFactory.cylinder(0.1, 0.14, 1.5, 6), materials.get('trunk'), [0, 0.75, 0]);
+  tree.add(ShapeFactory.ico(0.62, 0), materials.get('leafDeep'), [0, 1.7, 0]);
+  tree.add(ShapeFactory.ico(0.48, 0), materials.get('leafA'), [0.2, 2.0, 0.1]);
+  tree.add(ShapeFactory.ico(0.38, 0), materials.get('leafB'), [-0.15, 2.2, -0.1]);
+  tree.add(ShapeFactory.ico(0.28, 0), materials.get('leafD'), [0.1, 2.4, 0.05]);
+  tree.add(ShapeFactory.ico(0.18, 0), materials.get('leafE'), [0, 2.55, 0]);
+  tree.transform([CX + 2.0, 0, CZ + 0.6]);
   lot.child(tree.build());
 
-  // Another smaller tree
-  const tree2 = new MeshBuilder('LotTree2');
-  tree2.add(ShapeFactory.cylinder(0.05, 0.08, 1.0, 5), materials.get('trunkDark'), [0, 0.5, 0]);
-  tree2.add(ShapeFactory.ico(0.4, 0), materials.get('leafC'), [0, 1.2, 0]);
-  tree2.transform([CX - 1.5, 0, CZ + 1.5]);
-  lot.child(tree2.build());
+  // Second smaller tree
+  const t2 = new MeshBuilder('LotTree2');
+  t2.add(ShapeFactory.cylinder(0.06, 0.09, 1.0, 5), materials.get('trunkDark'), [0, 0.5, 0]);
+  t2.add(ShapeFactory.ico(0.4, 0), materials.get('leafC'), [0, 1.2, 0]);
+  t2.add(ShapeFactory.ico(0.25, 0), materials.get('leafD'), [0.15, 1.45, 0]);
+  t2.transform([CX - 1.6, 0, CZ + 1.4]);
+  lot.child(t2.build());
+
+  // Partial fence
+  for (let i = 0; i < 4; i++) {
+    lot.add(ShapeFactory.box(0.06, 0.42, 0.06), materials.get('fenceWood'), [CX - 2.6, 0.21, CZ - 1.2 + i * 0.7]);
+  }
+  lot.add(ShapeFactory.box(0.04, 0.04, 2.4), materials.get('fenceWood'), [CX - 2.6, 0.32, CZ - 0.15]);
 
   void rng;
   return lot.build();
@@ -473,33 +543,26 @@ function buildEmptyLot(rng: Rng): THREE.Group {
 function buildBlockWalls(rng: Rng): THREE.Group {
   const w = new MeshBuilder('BlockWalls');
   const wallMat = materials.get('concreteWall');
-  // Low block walls separating yards from road (not full cages)
-  const runs: [number, number, number, number][] = [
-    // A yard along road
-    [-2.9, 2.0, -2.9, 4.8],
-    // B yard along road
-    [2.9, 1.8, 2.9, 4.6],
-    // C yard along road
-    [2.9, -1.8, 2.9, -4.6],
-    // Along railway back of A
-    [-6.8, 1.6, -2.5, 1.6],
-    // Along railway back of B
-    [2.5, 1.6, 6.8, 1.6],
+  const brick = materials.get('brickWall');
+  const runs: [number, number, number, number, string][] = [
+    [-2.6, 1.7, -2.6, 4.4, 'c'],
+    [2.6, 1.6, 2.6, 4.3, 'c'],
+    [2.6, -1.6, 2.6, -4.2, 'b'],
+    [-6.4, 1.5, -2.2, 1.5, 'c'],
+    [2.2, 1.5, 6.4, 1.5, 'c'],
   ];
-  for (const [x0, z0, x1, z1] of runs) {
+  for (const [x0, z0, x1, z1, kind] of runs) {
     const len = Math.hypot(x1 - x0, z1 - z0);
     const ang = Math.atan2(z1 - z0, x1 - x0);
     const mx = (x0 + x1) / 2;
     const mz = (z0 + z1) / 2;
-    w.add(ShapeFactory.box(len, 0.55, 0.12), wallMat, [mx, 0.28, mz], [0, -ang, 0]);
-    // Cap
-    w.add(ShapeFactory.box(len, 0.05, 0.16), materials.get('houseTrim'), [mx, 0.58, mz], [0, -ang, 0]);
+    w.add(ShapeFactory.box(len, 0.5, 0.1), kind === 'b' ? brick : wallMat, [mx, 0.25, mz], [0, -ang, 0]);
+    w.add(ShapeFactory.box(len, 0.04, 0.14), materials.get('houseTrimDark'), [mx, 0.52, mz], [0, -ang, 0]);
   }
   void rng;
   return w.build();
 }
 
-/** Wind animation for clothesline sheets. */
 export function createClothesWind(root: THREE.Object3D): {
   name: string;
   update(t: number, dt: number): void;

@@ -85,7 +85,7 @@ async function main(): Promise<void> {
   const env = buildEnvironment(rng);
   scene.add(env.group);
   scene.fog = env.fog;
-  scene.background = new THREE.Color(0x5a90b8);
+  scene.background = new THREE.Color(0x4e9de0);
 
   // Soft PMREM environment for metal reflections (studio fill)
   {
@@ -153,7 +153,7 @@ async function main(): Promise<void> {
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 120);
   // Product-shot framing for 15×12 residential block
-  const camDist = 18.5;
+  const camDist = 19.5;
   const camElev = THREE.MathUtils.degToRad(36);
   const camAzim = THREE.MathUtils.degToRad(34);
   camera.position.set(
