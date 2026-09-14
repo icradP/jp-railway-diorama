@@ -39,11 +39,13 @@ export function buildRailway(rng: Rng): RailwayHandles {
   // Flatten tube into a bed by scaling Y — use box-ish approach instead
   bedGeo.dispose();
 
-  // Ballast as instanced pebble-ish boxes along track
+  // Ballast as instanced pebble-ish boxes along track (skip road corridor)
   const pebbleGeo = ShapeFactory.box(0.22, 0.06, 0.28);
   const pebbleMats: THREE.Matrix4[] = [];
   for (let i = 0; i < 90; i++) {
     const x = rng.range(-TRACK_LEN / 2, TRACK_LEN / 2);
+    // Keep clear of road deck so pebbles don't poke through asphalt
+    if (Math.abs(x) < 1.35) continue;
     const z = trackZ(x) + rng.range(-0.55, 0.55);
     const y = BALLAST_TOP - 0.02 + rng.range(-0.02, 0.02);
     pebbleMats.push(
@@ -62,11 +64,12 @@ export function buildRailway(rng: Rng): RailwayHandles {
   }
   b.instance(pebbleGeo, materials.get('ballast'), pebbleMats);
 
-  // Continuous dirt/gravel subgrade
+  // Continuous dirt/gravel subgrade (skip road corridor)
   const subW = 1.5;
   const subD = 0.22;
   for (let i = 0; i < 28; i++) {
     const x = -TRACK_LEN / 2 + (i + 0.5) * (TRACK_LEN / 28);
+    if (Math.abs(x) < 1.2) continue;
     const z = trackZ(x);
     const ang = Math.atan2(trackZ(x + 0.2) - trackZ(x - 0.2), 0.4);
     b.add(
@@ -77,25 +80,25 @@ export function buildRailway(rng: Rng): RailwayHandles {
     );
   }
 
-  // --- Sleepers (InstancedMesh) ---
+  // --- Sleepers (skip under road deck) ---
   const sleeperGeo = ShapeFactory.box(0.18, 0.07, RAIL_GAUGE + 0.42);
   const sleeperMats: THREE.Matrix4[] = [];
   const nSleepers = Math.floor(TRACK_LEN / SLEEPER_SPACING);
   for (let i = 0; i < nSleepers; i++) {
     const x = -TRACK_LEN / 2 + i * SLEEPER_SPACING + SLEEPER_SPACING / 2;
+    // Road occupies |x| ≲ 1.2 — don't let sleepers pierce asphalt
+    if (Math.abs(x) < 1.25) continue;
     const z = trackZ(x);
     const ang = Math.atan2(trackZ(x + 0.3) - trackZ(x - 0.3), 0.6);
-    // Slight Y jitter for handmade look
     const y = BALLAST_TOP + 0.035 + rng.range(-0.004, 0.004);
     sleeperMats.push(mat4(x, y, z, 0, -ang, 0));
   }
   b.instance(sleeperGeo, materials.get('sleeper'), sleeperMats);
 
   // --- Rails ---
-  // Two long boxes following the curve via small segments
   const railSegLen = 0.5;
   const railH = RAIL_H;
-  const railW = 0.045;
+  const railW = 0.028; // thinner rail head
   const railTopY = BALLAST_TOP + 0.07 + railH;
 
   for (const side of [-1, 1] as const) {
@@ -108,35 +111,39 @@ export function buildRailway(rng: Rng): RailwayHandles {
       const zMid = (z0 + z1) / 2;
       // Rail head
       b.add(
-        ShapeFactory.box(railSegLen + 0.01, railH * 0.55, railW * 2),
+        ShapeFactory.box(railSegLen + 0.01, railH * 0.45, railW * 2),
         materials.get('rail'),
         [x, railTopY - railH * 0.22, zMid],
         [0, -ang, 0],
       );
-      // Rail web (thinner)
+      // Rail web
       b.add(
-        ShapeFactory.box(railSegLen + 0.01, railH * 0.5, railW * 0.7),
+        ShapeFactory.box(railSegLen + 0.01, railH * 0.45, railW * 0.65),
         materials.get('rail'),
-        [x, railTopY - railH * 0.7, zMid],
+        [x, railTopY - railH * 0.65, zMid],
         [0, -ang, 0],
       );
     }
   }
 
-  // Crossing road panel (rails embedded in asphalt — flat metal plates)
+  // Crossing: flush panels at road-deck height (rails stay continuous above)
   const crossX = 0;
   const crossZ = trackZ(0);
-  b.add(
-    ShapeFactory.box(1.6, 0.04, RAIL_GAUGE + 0.5),
-    materials.get('metalDark'),
-    [crossX, BALLAST_TOP + 0.055, crossZ],
-  );
-  // Rubber panels between rails
+  const ROAD_TOP = 0.18; // matches road.ts elevated asphalt top
+  // Rubber filler panels inside each rail pair, flush with asphalt
   for (const side of [-1, 1] as const) {
     b.add(
-      ShapeFactory.box(1.5, 0.035, (0.55 - RAIL_GAUGE / 2) + 0.08),
+      ShapeFactory.box(2.3, 0.02, 0.28),
       materials.get('warnBlack'),
-      [crossX, BALLAST_TOP + 0.052, crossZ + side * (RAIL_GAUGE / 2 + 0.18)],
+      [crossX, ROAD_TOP - 0.005, crossZ + side * (RAIL_GAUGE / 2 + 0.16)],
+    );
+  }
+  // Narrow metal apron just outside rails (not a big slab)
+  for (const side of [-1, 1] as const) {
+    b.add(
+      ShapeFactory.box(2.3, 0.02, 0.12),
+      materials.get('metalDark'),
+      [crossX, ROAD_TOP - 0.004, crossZ + side * (RAIL_GAUGE / 2 + 0.38)],
     );
   }
 

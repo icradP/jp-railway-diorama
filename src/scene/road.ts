@@ -14,13 +14,16 @@ export function buildRoad(rng: Rng, trackZ: (x: number) => number): THREE.Group 
   const ROAD_W = 2.4;
   const ROAD_L = 9.2;
 
-  // Asphalt segments (slight color variation via two materials already)
-  const segCount = 20;
+  // Asphalt segments with gentle ramp into the crossing deck
+  const segCount = 24;
   const segLen = ROAD_L / segCount;
   for (let i = 0; i < segCount; i++) {
     const z = -ROAD_L / 2 + (i + 0.5) * segLen;
-    // Elevate slightly where over ballast
-    const elev = Math.abs(z - trackZ(0)) < 1.2 ? 0.16 : 0.04;
+    const dz = Math.abs(z - trackZ(0));
+    // Smoothstep: 0.04 ground → 0.16 over the ballast
+    let elev = 0.04;
+    if (dz < 0.9) elev = 0.16;
+    else if (dz < 1.5) elev = 0.04 + (0.16 - 0.04) * (1.5 - dz) / 0.6;
     b.add(
       ShapeFactory.box(ROAD_W, 0.04, segLen + 0.01),
       materials.get('asphalt'),
@@ -37,28 +40,28 @@ export function buildRoad(rng: Rng, trackZ: (x: number) => number): THREE.Group 
     );
   }
 
-  // White edge lines (faded)
+  // White edge lines — sit on the matching road height
   for (const side of [-1, 1] as const) {
     const line = ShapeFactory.plane(0.08, ROAD_L - 0.4);
     line.rotateX(-Math.PI / 2);
-    b.add(line, materials.get('lineWhite'), [side * (ROAD_W / 2 - 0.18), 0.065, 0]);
+    b.add(line, materials.get('lineWhite'), [side * (ROAD_W / 2 - 0.18), 0.062, 0]);
   }
 
-  // Center dashed line (subtle, rural)
+  // Center dashed line
   for (let i = 0; i < 8; i++) {
     const z = -3.5 + i * 0.95;
-    if (Math.abs(z) < 1.5) continue; // skip near crossing
+    if (Math.abs(z) < 1.5) continue;
     const dash = ShapeFactory.plane(0.07, 0.45);
     dash.rotateX(-Math.PI / 2);
-    b.add(dash, materials.get('lineWhite'), [0, 0.065, z]);
+    b.add(dash, materials.get('lineWhite'), [0, 0.062, z]);
   }
 
-  // Stop lines before crossing (both approaches)
+  // Stop lines
   for (const side of [-1, 1] as const) {
     const stopZ = side * 1.85;
     const stop = ShapeFactory.plane(ROAD_W - 0.25, 0.18);
     stop.rotateX(-Math.PI / 2);
-    b.add(stop, materials.get('lineWhite'), [0, 0.065, stopZ]);
+    b.add(stop, materials.get('lineWhite'), [0, 0.062, stopZ]);
   }
 
   // Faded yellow diagonal hazard markings near gates

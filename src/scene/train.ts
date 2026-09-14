@@ -86,12 +86,12 @@ function buildRailcar(): THREE.Group {
   b.add(tailGeo, materials.get('lampRed'), [-CAR_L / 2 - 0.01, bodyY - 0.05, -0.15]);
   b.add(ShapeFactory.box(0.04, 0.1, 0.28), materials.get('trainStripe'), [CAR_L / 2 + 0.01, bodyY + 0.32, 0]);
 
-  // Bogies
+  // Bogies — wheel center sits on rail top (radius 0.13)
   const wheelGeo = ShapeFactory.cylinder(0.13, 0.13, 0.06, 10);
   wheelGeo.rotateX(Math.PI / 2);
-  const axleY = RAIL_TOP - 0.02;
+  const axleY = RAIL_TOP - 0.13; // bottom of wheel = rail top
   for (const bx of [-0.75, 0.75] as const) {
-    b.add(ShapeFactory.box(0.55, 0.12, CAR_W * 0.7), materials.get('metalDark'), [bx, RAIL_TOP + 0.08, 0]);
+    b.add(ShapeFactory.box(0.55, 0.1, CAR_W * 0.7), materials.get('metalDark'), [bx, RAIL_TOP + 0.1, 0]);
     for (const wx of [-0.18, 0.18] as const) {
       for (const side of [-1, 1] as const) {
         b.add(wheelGeo, materials.get('rail'), [bx + wx, axleY, side * (CAR_W * 0.38)]);

@@ -12,34 +12,33 @@ import { assets } from '../core/assets';
 export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group {
   const b = new MeshBuilder('Props');
 
-  // --- Register & place bicycle (procedural, replaceable via GLTF) ---
+  // --- Bicycles parked on platform, clear of shelter and platform edge ---
   registerBicycle();
+  // Platform: center (-2.6, trackZ(-2.6)+2.35), size 3.4×1.6 → x ∈ [-4.3,-0.9]
+  // Shelter footprint: x ∈ [-3.9,-1.3]. Safe parking strip: x ∈ [-1.25,-0.95]
+  const platTop = 0.3;
+  const platZ = trackZ(-2.6) + 2.35;
   const bike = assets.loadSync('bicycle');
-  bike.position.set(-1.9, 0.1, trackZ(-1.9) + 2.15);
-  bike.rotation.y = 0.5;
+  bike.position.set(-1.22, platTop, platZ - 0.28);
+  bike.rotation.y = 0.12;
+  bike.scale.setScalar(0.9);
   b.child(bike);
 
-  // Second bike
   const bike2 = assets.loadSync('bicycle');
-  bike2.position.set(-1.55, 0.1, trackZ(-1.55) + 2.25);
-  bike2.rotation.y = 0.7;
-  bike2.scale.setScalar(0.95);
+  bike2.position.set(-0.98, platTop, platZ + 0.22);
+  bike2.rotation.y = -0.1;
+  bike2.scale.setScalar(0.88);
   b.child(bike2);
 
-  // Bike racks
-  const rack = new MeshBuilder('BikeRack');
-  for (let i = 0; i < 3; i++) {
-    const rx = -1.7 + i * 0.25;
-    rack.add(ShapeFactory.box(0.04, 0.35, 0.04), materials.get('metalGray'), [rx, 0.18, 0]);
-    rack.add(
-      ShapeFactory.torus(0.12, 0.015, 6, 10, Math.PI),
-      materials.get('metalGray'),
-      [rx, 0.35, 0],
-      [0, Math.PI / 2, 0],
-    );
+  // Simple ground stands under wheels (not overlapping)
+  const stand = new MeshBuilder('BikeStand');
+  for (const [sx, sz] of [
+    [-1.22, platZ - 0.28],
+    [-0.98, platZ + 0.22],
+  ] as const) {
+    stand.add(ShapeFactory.box(0.55, 0.02, 0.08), materials.get('metalDark'), [sx, platTop + 0.01, sz]);
   }
-  rack.transform([-1.7, 0.05, trackZ(-1.7) + 1.9]);
-  b.child(rack.build());
+  b.child(stand.build());
 
   // --- Utility poles + wires ---
   function makePole(h: number): THREE.Group {
@@ -154,7 +153,7 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
   return b.build();
 }
 
-/** Procedural bicycle — registered in AssetRegistry as replaceable asset. */
+/** Procedural bicycle — compact mamachari, readable at diorama scale. */
 function registerBicycle(): void {
   assets.register({
     name: 'bicycle',
@@ -166,46 +165,42 @@ function registerBicycle(): void {
         const tire = materials.get('bicycleTire');
         const metal = materials.get('metalGray');
 
-        // Wheels
-        const wheelGeo = ShapeFactory.torus(0.28, 0.03, 8, 16);
+        const R = 0.24;
+        const T = 0.018; // thin tire
+        const wheelGeo = ShapeFactory.torus(R, T, 6, 14);
         const rear = new THREE.Mesh(wheelGeo, tire);
-        rear.position.set(-0.4, 0.28, 0);
+        rear.position.set(-0.36, R, 0);
         rear.castShadow = true;
         const front = new THREE.Mesh(wheelGeo, tire);
-        front.position.set(0.4, 0.28, 0);
+        front.position.set(0.36, R, 0);
         front.castShadow = true;
         bike.child(rear);
         bike.child(front);
 
-        // Hubs
-        bike.add(ShapeFactory.cylinder(0.04, 0.04, 0.06, 6), metal, [-0.4, 0.28, 0], [Math.PI / 2, 0, 0]);
-        bike.add(ShapeFactory.cylinder(0.04, 0.04, 0.06, 6), metal, [0.4, 0.28, 0], [Math.PI / 2, 0, 0]);
+        // Spokes (simple)
+        const spoke = ShapeFactory.box(0.015, R * 1.7, 0.015);
+        bike.add(spoke, metal, [-0.36, R, 0], [0, 0, 0.4]);
+        bike.add(spoke, metal, [0.36, R, 0], [0, 0, -0.3]);
 
-        // Frame tubes
-        // Seat tube
-        bike.add(ShapeFactory.box(0.04, 0.4, 0.04), frame, [-0.15, 0.45, 0], [0, 0, 0.3]);
-        // Top tube
-        bike.add(ShapeFactory.box(0.45, 0.035, 0.035), frame, [0.05, 0.62, 0]);
-        // Down tube
-        bike.add(ShapeFactory.box(0.5, 0.035, 0.035), frame, [0.1, 0.42, 0], [0, 0, -0.35]);
-        // Chain stays
-        bike.add(ShapeFactory.box(0.4, 0.025, 0.025), frame, [-0.25, 0.28, 0.04]);
-        bike.add(ShapeFactory.box(0.4, 0.025, 0.025), frame, [-0.25, 0.28, -0.04]);
-        // Seat stays
-        bike.add(ShapeFactory.box(0.45, 0.025, 0.025), frame, [-0.28, 0.5, 0.04], [0, 0, 0.55]);
-        bike.add(ShapeFactory.box(0.45, 0.025, 0.025), frame, [-0.28, 0.5, -0.04], [0, 0, 0.55]);
-        // Fork
-        bike.add(ShapeFactory.box(0.06, 0.4, 0.04), frame, [0.4, 0.45, 0.03], [0, 0, -0.15]);
-        bike.add(ShapeFactory.box(0.06, 0.4, 0.04), frame, [0.4, 0.45, -0.03], [0, 0, -0.15]);
-        // Handlebar
-        bike.add(ShapeFactory.box(0.04, 0.2, 0.04), metal, [0.42, 0.7, 0]);
-        bike.add(ShapeFactory.box(0.03, 0.03, 0.35), metal, [0.42, 0.78, 0]);
+        // Diamond frame
+        bike.add(ShapeFactory.box(0.035, 0.32, 0.035), frame, [-0.12, R + 0.12, 0], [0, 0, 0.25]);
+        bike.add(ShapeFactory.box(0.4, 0.03, 0.03), frame, [0.05, R + 0.28, 0]);
+        bike.add(ShapeFactory.box(0.42, 0.03, 0.03), frame, [0.08, R + 0.12, 0], [0, 0, -0.28]);
+        bike.add(ShapeFactory.box(0.32, 0.02, 0.02), frame, [-0.2, R, 0.03]);
+        bike.add(ShapeFactory.box(0.32, 0.02, 0.02), frame, [-0.2, R, -0.03]);
+
+        // Fork + bar
+        bike.add(ShapeFactory.box(0.035, 0.3, 0.03), frame, [0.36, R + 0.14, 0.02], [0, 0, -0.12]);
+        bike.add(ShapeFactory.box(0.035, 0.3, 0.03), frame, [0.36, R + 0.14, -0.02], [0, 0, -0.12]);
+        bike.add(ShapeFactory.box(0.03, 0.14, 0.03), metal, [0.38, R + 0.32, 0]);
+        bike.add(ShapeFactory.box(0.02, 0.02, 0.28), metal, [0.38, R + 0.38, 0]);
+
         // Seat
-        bike.add(ShapeFactory.box(0.22, 0.05, 0.1), materials.get('warnBlack'), [-0.18, 0.68, 0]);
-        // Pedal crank
-        bike.add(ShapeFactory.cylinder(0.08, 0.08, 0.03, 6), metal, [-0.15, 0.28, 0.05], [Math.PI / 2, 0, 0]);
+        bike.add(ShapeFactory.box(0.16, 0.035, 0.08), materials.get('warnBlack'), [-0.16, R + 0.32, 0]);
         // Basket
-        bike.add(ShapeFactory.box(0.22, 0.15, 0.2), materials.get('metalGray'), [0.48, 0.72, 0]);
+        bike.add(ShapeFactory.box(0.16, 0.1, 0.16), metal, [0.42, R + 0.28, 0]);
+        // Kickstand
+        bike.add(ShapeFactory.box(0.02, 0.18, 0.02), metal, [-0.1, R * 0.45, 0.06], [0.3, 0, 0.2]);
 
         return bike.build();
       },
