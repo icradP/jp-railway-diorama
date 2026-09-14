@@ -4,10 +4,10 @@ import { materials } from '../core/materials';
 import { ShapeFactory } from '../core/shapes';
 import { Rng } from '../core/rng';
 
-/** 12 × 10 m elevated display plinth with beveled edge. */
+/** 15 × 12 m elevated display plinth — 田 residential block. */
 export function buildDioramaBase(rng: Rng): THREE.Group {
-  const W = 12;
-  const D = 10;
+  const W = 15;
+  const D = 12;
   const H = 0.55;
   const EDGE = 0.22;
 
@@ -32,7 +32,7 @@ export function buildDioramaBase(rng: Rng): THREE.Group {
   b.add(ShapeFactory.box(rimT, rimH, D + 0.3), materials.get('woodDark'), [W / 2 + 0.1, rimY, 0]);
   b.add(ShapeFactory.box(rimT, rimH, D + 0.3), materials.get('woodDark'), [-W / 2 - 0.1, rimY, 0]);
 
-  // Corner feet (studio turntable feel)
+  // Corner feet
   const footGeo = ShapeFactory.cylinder(0.18, 0.22, 0.12, 8);
   for (const [fx, fz] of [
     [W / 2 - 0.3, D / 2 - 0.3],
@@ -43,29 +43,21 @@ export function buildDioramaBase(rng: Rng): THREE.Group {
     b.add(footGeo, materials.get('plinth'), [fx, -H - 0.06, fz]);
   }
 
-  // Top soil/grass ground plane (slightly inset)
-  const ground = ShapeFactory.groundPatch(W - 0.15, D - 0.15, 24, 20, 0.06, rng);
+  // Top ground plane
+  const ground = ShapeFactory.groundPatch(W - 0.15, D - 0.15, 28, 22, 0.05, rng);
   b.add(ground, materials.get('grass'), [0, 0.001, 0]);
 
-  // Soft dirt patches for variety
+  // Dirt patches (keep clear of road/rail)
   const dirtGeo = ShapeFactory.plane(1.8, 1.2);
   const dirtMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
+    const x = rng.range(-6.5, 6.5);
+    const z = rng.range(-5.2, 5.2);
+    if (Math.abs(x) < 1.8 || Math.abs(z) < 1.4) continue;
     dirtMats.push(
-      mat4(
-        rng.range(-5, 5),
-        0.01,
-        rng.range(-4, 4),
-        -Math.PI / 2,
-        0,
-        rng.range(0, Math.PI),
-        rng.range(0.6, 1.4),
-        rng.range(0.6, 1.2),
-        1,
-      ),
+      mat4(x, 0.01, z, -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.6, 1.4), rng.range(0.6, 1.2), 1),
     );
   }
-  // Skip dirt near center road/rail — handled by road/railway modules
   b.instance(dirtGeo, materials.get('dirt'), dirtMats, false, true);
 
   return b.build();

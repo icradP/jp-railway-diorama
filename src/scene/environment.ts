@@ -93,7 +93,7 @@ export function buildEnvironment(rng: Rng): EnvironmentHandles {
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 1;
   sun.shadow.camera.far = 40;
-  const s = 9;
+  const s = 11;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
   sun.shadow.camera.top = s;

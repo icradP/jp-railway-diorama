@@ -12,33 +12,21 @@ import { assets } from '../core/assets';
 export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group {
   const b = new MeshBuilder('Props');
 
-  // --- Bicycles parked on platform, clear of shelter and platform edge ---
+  // --- Bicycles at house entrances (residential) ---
   registerBicycle();
-  // Platform: center (-2.6, trackZ(-2.6)+2.35), size 3.4×1.6 → x ∈ [-4.3,-0.9]
-  // Shelter footprint: x ∈ [-3.9,-1.3]. Safe parking strip: x ∈ [-1.25,-0.95]
-  const platTop = 0.3;
-  const platZ = trackZ(-2.6) + 2.35;
+  // House A entrance (~ -4.6, 3.4) — bike by porch toward road
   const bike = assets.loadSync('bicycle');
-  bike.position.set(-1.22, platTop, platZ - 0.28);
-  bike.rotation.y = 0.12;
+  bike.position.set(-3.0, 0.02, 4.4);
+  bike.rotation.y = 0.4;
   bike.scale.setScalar(0.9);
   b.child(bike);
 
+  // House C entrance (~ 4.5, -3.5)
   const bike2 = assets.loadSync('bicycle');
-  bike2.position.set(-0.98, platTop, platZ + 0.22);
-  bike2.rotation.y = -0.1;
+  bike2.position.set(2.8, 0.02, -2.6);
+  bike2.rotation.y = -0.3;
   bike2.scale.setScalar(0.88);
   b.child(bike2);
-
-  // Simple ground stands under wheels (not overlapping)
-  const stand = new MeshBuilder('BikeStand');
-  for (const [sx, sz] of [
-    [-1.22, platZ - 0.28],
-    [-0.98, platZ + 0.22],
-  ] as const) {
-    stand.add(ShapeFactory.box(0.55, 0.02, 0.08), materials.get('metalDark'), [sx, platTop + 0.01, sz]);
-  }
-  b.child(stand.build());
 
   // --- Utility poles + wires ---
   function makePole(h: number): THREE.Group {
@@ -56,9 +44,10 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
   }
 
   const polePositions: THREE.Vector3[] = [
-    new THREE.Vector3(4.2, 0, trackZ(4.2) + 1.55),
-    new THREE.Vector3(-4.6, 0, trackZ(-4.6) + 1.45),
-    new THREE.Vector3(-1.2, 0, trackZ(-1.2) + 3.9),
+    new THREE.Vector3(5.5, 0, trackZ(5.5) + 1.7),
+    new THREE.Vector3(-5.8, 0, trackZ(-5.8) + 1.6),
+    new THREE.Vector3(-1.4, 0, trackZ(-1.4) + 5.0),
+    new THREE.Vector3(1.4, 0, trackZ(1.4) - 5.0),
   ];
 
   for (const pos of polePositions) {

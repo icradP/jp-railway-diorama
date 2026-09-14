@@ -84,35 +84,36 @@ export function buildVegetation(rng: Rng): VegetationHandles {
     return t.build();
   }
 
-  // Sakura trees (moderate — diorama scale)
+  // Street / yard trees — fit 田 residential block (15×12)
   const sakura1 = makeTree({ height: 1.55, crownR: 0.38, leafMat: 'sakura', multi: true });
-  sakura1.position.set(-4.4, 0, 2.0);
+  sakura1.position.set(-6.2, 0, 4.8);
   sakura1.rotation.y = 0.4;
   b.child(sakura1);
   registerSway(sakura1, 0.03);
 
-  const sakura2 = makeTree({ height: 1.25, crownR: 0.32, leafMat: 'sakuraLight', multi: true });
-  sakura2.position.set(4.0, 0, 2.8);
+  const sakura2 = makeTree({ height: 1.3, crownR: 0.34, leafMat: 'sakuraLight', multi: true });
+  sakura2.position.set(6.0, 0, 4.5);
   sakura2.rotation.y = 1.2;
   b.child(sakura2);
   registerSway(sakura2, 0.035);
 
-  // Maple
-  const maple = makeTree({ height: 1.45, crownR: 0.36, leafMat: 'maple', multi: true });
-  maple.position.set(4.7, 0, -1.9);
+  // Persimmon-like tree near House C
+  const maple = makeTree({ height: 1.4, crownR: 0.36, leafMat: 'maple', multi: true });
+  maple.position.set(5.8, 0, -2.0);
   maple.rotation.y = 0.8;
   b.child(maple);
   registerSway(maple, 0.03);
 
-  // Generic trees — keep away from track/road and shrink
+  // Neighborhood trees
   for (const [tx, tz, th] of [
-    [-4.9, -1.4, 1.25],
-    [2.4, 3.6, 1.35],
-    [-1.8, 3.9, 1.15],
-    [5.1, 1.0, 1.1],
-    [-5.1, 0.5, 1.2],
+    [-6.4, 1.2, 1.2],
+    [6.5, 0.8, 1.15],
+    [-1.8, 5.0, 1.1],
+    [1.9, 5.2, 1.0],
+    [-2.2, -5.0, 1.05],
+    [6.2, -4.8, 1.15],
   ] as const) {
-    if (Math.abs(tx) < 1.8) continue;
+    if (Math.abs(tx) < 1.8 || Math.abs(tz) < 1.3) continue;
     const tree = makeTree({ height: th, crownR: 0.28, leafMat: rng.pick(['leafA', 'leafB', 'leafC']) });
     tree.position.set(tx, 0, tz);
     tree.rotation.y = rng.range(0, Math.PI * 2);
@@ -143,38 +144,33 @@ export function buildVegetation(rng: Rng): VegetationHandles {
       );
     }
   }
-  bamboo.transform([-3.6, 0, 3.3]);
+  bamboo.transform([-6.5, 0, 5.0]);
   const bambooBuilt = bamboo.build();
   b.child(bambooBuilt);
   registerSway(bambooBuilt, 0.02);
 
-  // Bushes — much smaller
+  // Bushes
   const bushGeo = ShapeFactory.ico(0.16, 0);
   const bushMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 18; i++) {
-    const x = rng.range(-5, 5);
-    const z = rng.range(-4, 4);
+  for (let i = 0; i < 20; i++) {
+    const x = rng.range(-6.5, 6.5);
+    const z = rng.range(-5.2, 5.2);
     if (Math.abs(x) < 1.55 || Math.abs(z) < 1.1) continue;
-    if (Math.abs(x + 2.6) < 1.9 && Math.abs(z - 2.3) < 1.3) continue; // station
     bushMats.push(
       mat4(x, 0.1, z, rng.range(0, 0.3), rng.range(0, Math.PI), 0, rng.range(0.7, 1.3), rng.range(0.5, 0.9), rng.range(0.7, 1.2)),
     );
   }
   b.instance(bushGeo, materials.get('leafC'), bushMats);
 
-  // --- Grass (InstancedMesh) ---
-  // Thin crossed planes or small cones
+  // Grass
   const grassGeo = ShapeFactory.cone(0.035, 0.22, 4);
   grassGeo.translate(0, 0.11, 0);
   const grassMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 420; i++) {
-    const x = rng.range(-5.6, 5.6);
-    const z = rng.range(-4.5, 4.5);
-    // Avoid road and track
+  for (let i = 0; i < 480; i++) {
+    const x = rng.range(-6.8, 6.8);
+    const z = rng.range(-5.4, 5.4);
     if (Math.abs(x) < 1.45) continue;
     if (Math.abs(z) < 1.0) continue;
-    // Avoid station platform
-    if (x > -4.5 && x < -0.5 && z > 1.2 && z < 3.5) continue;
     const s = rng.range(0.6, 1.6);
     grassMats.push(
       mat4(x, 0.02, z, 0, rng.range(0, Math.PI), rng.range(-0.15, 0.15), s, s, s),

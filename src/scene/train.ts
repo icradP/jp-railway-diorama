@@ -16,10 +16,10 @@ const CAR_W = 0.72;
 const CAR_H = 0.95;
 const HALF = CAR_L / 2;
 
-const APPROACH_START = 7.8;
-const DEPART_END = -8.4;
-/** Stop beside the platform, fully clear of the crossing occupancy zone. */
-const STOP_X = -2.95;
+const APPROACH_START = 9.2;
+const DEPART_END = -9.6;
+/** Stop beside the open area west of the crossing (vacant-lot side of track). */
+const STOP_X = -2.6;
 const CROSS_X = 0;
 const OCCUPY_PAD = 1.0;
 const TRIGGER_DIST = 4.8;

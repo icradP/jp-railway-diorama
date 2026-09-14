@@ -17,7 +17,7 @@ import { buildTerrain } from './scene/terrain';
 import { buildRailway } from './scene/railway';
 import { buildCrossing } from './scene/crossing';
 import { buildRoad } from './scene/road';
-import { buildStation } from './scene/station';
+import { buildResidential, createClothesWind } from './scene/house';
 import { buildVegetation } from './scene/vegetation';
 import { buildProps } from './scene/props';
 import { buildEnvironment } from './scene/environment';
@@ -116,8 +116,9 @@ async function main(): Promise<void> {
   const crossing = buildCrossing(rng, railway.trackZ);
   diorama.add(crossing.group);
 
-  const station = buildStation(rng, railway.trackZ);
-  diorama.add(station.group);
+  // 田 residential block: 3 一户建 + empty lot
+  const residential = buildResidential(rng);
+  diorama.add(residential);
 
   const veg = buildVegetation(rng);
   diorama.add(veg.group);
@@ -130,6 +131,7 @@ async function main(): Promise<void> {
 
   // --- Collect module animations ---
   animationManager.add(veg.createWindAnimation());
+  animationManager.add(createClothesWind(residential));
   animationManager.add(env.createCloudAnimation());
   animationManager.add(env.createSunBreath());
   animationManager.add(env.createLampBreath());
@@ -145,10 +147,10 @@ async function main(): Promise<void> {
 
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 120);
-  // Classic diorama product shot: ~40° elevation, slightly south-east
-  const camDist = 13.2;
-  const camElev = THREE.MathUtils.degToRad(40);
-  const camAzim = THREE.MathUtils.degToRad(38);
+  // Product-shot framing for 15×12 residential block
+  const camDist = 18.5;
+  const camElev = THREE.MathUtils.degToRad(36);
+  const camAzim = THREE.MathUtils.degToRad(34);
   camera.position.set(
     Math.sin(camAzim) * Math.cos(camElev) * camDist,
     Math.sin(camElev) * camDist,
@@ -159,8 +161,8 @@ async function main(): Promise<void> {
   controls.target.set(0, 0.55, 0.15);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.minDistance = 4;
-  controls.maxDistance = 28;
+  controls.minDistance = 5;
+  controls.maxDistance = 36;
   controls.minPolarAngle = THREE.MathUtils.degToRad(12);
   controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
   controls.enablePan = true;

@@ -59,6 +59,38 @@ export class MaterialLibrary {
     this.std('plinth', 0x242018, { roughness: 0.55 });
     this.std('plinthEdge', 0x3a3020, { roughness: 0.48, metalness: 0.15 });
 
+    // --- Residential 一户建 ---
+    this.std('houseWallA', 0xe8e0d0, { roughness: 0.88 }); // cream
+    this.std('houseWallB', 0xd8d4cc, { roughness: 0.86 }); // light gray
+    this.std('houseWallC', 0xd4c4a8, { roughness: 0.9 }); // warm beige
+    this.std('houseTrim', 0x4a3a2c, { roughness: 0.82, flatShading: true }); // dark wood
+    this.std('houseRoof', 0x2a3034, { roughness: 0.7, flatShading: true });
+    this.std('houseRoofEdge', 0x1a2024, { roughness: 0.68, flatShading: true });
+    this.std('houseWindow', 0x3a4a58, {
+      roughness: 0.2,
+      metalness: 0.4,
+      emissive: 0x2a3848,
+      emissiveIntensity: 0.15,
+    });
+    this.std('houseWindowWarm', 0x4a4030, {
+      roughness: 0.25,
+      emissive: 0xffc878,
+      emissiveIntensity: 0.35,
+    });
+    this.std('houseDoor', 0x5a4030, { roughness: 0.75, flatShading: true });
+    this.std('houseShutter', 0x8a8a84, { roughness: 0.7, metalness: 0.2 });
+    this.std('concreteWall', 0xa8a8a0, { roughness: 0.9, flatShading: true }); // block wall
+    this.std('fenceWood', 0x6a5238, { roughness: 0.85, flatShading: true });
+    this.std('tileWalk', 0xb0b0a8, { roughness: 0.88 });
+    this.std('soilBed', 0x5a4530, { roughness: 0.95, flatShading: true });
+    this.std('clothWhite', 0xf0ebe4, { roughness: 0.85, transparent: true, opacity: 0.92 });
+    this.std('clothBlue', 0x8ab0c8, { roughness: 0.85 });
+    this.std('mailBox', 0x3a5a4a, { roughness: 0.65, metalness: 0.2 });
+    this.std('acUnit', 0xc8c8c0, { roughness: 0.55, metalness: 0.35 });
+    this.std('carBody', 0xd8d8d0, { roughness: 0.4, metalness: 0.35, flatShading: true });
+    this.std('carAccent', 0x4a6a8a, { roughness: 0.4, metalness: 0.3 });
+    this.std('shedWall', 0x7a8a7a, { roughness: 0.85, flatShading: true });
+
     // --- Railway ---
     this.std('rail', 0x3a3d42, { roughness: 0.35, metalness: 0.78, flatShading: true });
     this.std('sleeper', 0x5c4033, { roughness: 0.9, flatShading: true });

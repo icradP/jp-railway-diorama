@@ -17,7 +17,7 @@ export interface RailwayHandles {
  */
 export function buildRailway(rng: Rng): RailwayHandles {
   const b = new MeshBuilder('Railway');
-  const TRACK_LEN = 11.6;
+  const TRACK_LEN = 14.4;
   const SLEEPER_SPACING = 0.42;
   const RAIL_GAUGE = 0.72; // model-ish narrow gauge look
   const BALLAST_TOP = 0.14;

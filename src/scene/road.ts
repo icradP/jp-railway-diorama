@@ -11,8 +11,8 @@ import { ShapeFactory as SF } from '../core/shapes';
  */
 export function buildRoad(rng: Rng, trackZ: (x: number) => number): THREE.Group {
   const b = new MeshBuilder('Road');
-  const ROAD_W = 2.4;
-  const ROAD_L = 9.2;
+  const ROAD_W = 2.6;
+  const ROAD_L = 11.4;
 
   // Asphalt segments with gentle ramp into the crossing deck
   const segCount = 24;
