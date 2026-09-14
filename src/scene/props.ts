@@ -14,18 +14,18 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
 
   // --- Bicycles at house entrances (residential) ---
   registerBicycle();
-  // House A entrance (~ -4.6, 3.4) — bike by porch toward road
+  // House A entrance — bike by porch
   const bike = assets.loadSync('bicycle');
-  bike.position.set(-3.0, 0.02, 4.4);
-  bike.rotation.y = 0.4;
-  bike.scale.setScalar(0.9);
+  bike.position.set(-2.5, 0.02, 3.6);
+  bike.rotation.y = 0.35;
+  bike.scale.setScalar(0.85);
   b.child(bike);
 
-  // House C entrance (~ 4.5, -3.5)
+  // House C entrance
   const bike2 = assets.loadSync('bicycle');
-  bike2.position.set(2.8, 0.02, -2.6);
-  bike2.rotation.y = -0.3;
-  bike2.scale.setScalar(0.88);
+  bike2.position.set(2.4, 0.02, -2.1);
+  bike2.rotation.y = -0.25;
+  bike2.scale.setScalar(0.85);
   b.child(bike2);
 
   // --- Utility poles + wires ---

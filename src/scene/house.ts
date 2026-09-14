@@ -436,10 +436,10 @@ function buildConcretePipes(rng: Rng): THREE.Group {
 
   // Mouths toward road (+X toward center of lot / road at x=0)
   // Bottom two, top one
-  const CX = -4.6;
-  const CZ = -3.8;
-  pipe(CX, R, CZ - 0.65);
-  pipe(CX, R, CZ + 0.65);
+  const CX = -4.0;
+  const CZ = -3.1;
+  pipe(CX, R, CZ - 0.6);
+  pipe(CX, R, CZ + 0.6);
   pipe(CX, R * 2 + 0.04, CZ);
 
   // Dirt pad under pipes — raised, not coplanar
@@ -456,29 +456,29 @@ export function buildResidential(rng: Rng): THREE.Group {
   const root = new THREE.Group();
   root.name = 'Residential';
 
-  // House A — traditional, top-left
-  const houseA = buildIkkodate({ variant: 'A', rotationY: 0.1, rng });
-  houseA.position.set(-4.6, 0, 3.4);
+  // Tighter 田 — smaller homes, closer to road/rail
+  const houseA = buildIkkodate({ variant: 'A', rotationY: 0.08, rng });
+  houseA.scale.setScalar(0.72);
+  houseA.position.set(-3.9, 0, 2.7);
   root.add(houseA);
-  root.add(buildYard(rng, -4.6, 3.4, 'A'));
+  root.add(buildYard(rng, -3.9, 2.7, 'A'));
 
-  // House B — modern compact, top-right
-  const houseB = buildIkkodate({ variant: 'B', rotationY: -0.15, rng });
-  houseB.position.set(4.3, 0, 3.2);
+  const houseB = buildIkkodate({ variant: 'B', rotationY: -0.12, rng });
+  houseB.scale.setScalar(0.74);
+  houseB.position.set(3.7, 0, 2.55);
   root.add(houseB);
-  root.add(buildYard(rng, 4.3, 3.2, 'B'));
+  root.add(buildYard(rng, 3.7, 2.55, 'B'));
   const car = buildKeiCar();
-  car.position.set(3.5, 0, 1.4);
-  car.rotation.y = Math.PI / 2 + 0.2;
+  car.position.set(3.1, 0, 1.15);
+  car.rotation.y = Math.PI / 2 + 0.15;
   root.add(car);
 
-  // House C — Showa, bottom-right
   const houseC = buildIkkodate({ variant: 'C', rotationY: Math.PI - 0.08, rng });
-  houseC.position.set(4.5, 0, -3.5);
+  houseC.scale.setScalar(0.72);
+  houseC.position.set(3.85, 0, -2.9);
   root.add(houseC);
-  root.add(buildYard(rng, 4.5, -3.5, 'C'));
+  root.add(buildYard(rng, 3.85, -2.9, 'C'));
 
-  // Empty lot + concrete pipes, bottom-left
   root.add(buildEmptyLot(rng));
   root.add(buildConcretePipes(rng));
 
@@ -587,8 +587,8 @@ function buildYard(rng: Rng, hx: number, hz: number, variant: HouseVariant): THR
 
 function buildEmptyLot(rng: Rng): THREE.Group {
   const lot = new MeshBuilder('EmptyLot');
-  const CX = -4.4;
-  const CZ = -3.6;
+  const CX = -4.0;
+  const CZ = -3.0;
 
   // Flat lawn patch raised clear of base ground (no coplanar fight)
   lot.add(ShapeFactory.box(3.4, 0.035, 2.4), materials.get('grassShade'), [CX, 0.05, CZ]);
@@ -627,11 +627,11 @@ function buildBlockWalls(rng: Rng): THREE.Group {
   const wallMat = materials.get('concreteWall');
   const brick = materials.get('brickWall');
   const runs: [number, number, number, number, string][] = [
-    [-2.6, 1.7, -2.6, 4.4, 'c'],
-    [2.6, 1.6, 2.6, 4.3, 'c'],
-    [2.6, -1.6, 2.6, -4.2, 'b'],
-    [-6.4, 1.5, -2.2, 1.5, 'c'],
-    [2.2, 1.5, 6.4, 1.5, 'c'],
+    [-2.4, 1.4, -2.4, 3.8, 'c'],
+    [2.4, 1.3, 2.4, 3.7, 'c'],
+    [2.4, -1.4, 2.4, -3.6, 'b'],
+    [-5.6, 1.35, -2.0, 1.35, 'c'],
+    [2.0, 1.35, 5.6, 1.35, 'c'],
   ];
   for (const [x0, z0, x1, z1, kind] of runs) {
     const len = Math.hypot(x1 - x0, z1 - z0);

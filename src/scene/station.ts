@@ -15,27 +15,27 @@ export interface StationHandles {
  */
 export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHandles {
   const b = new MeshBuilder('Station');
-  const SX = -3.4;
-  const SZ = trackZ(SX) - 2.45;
+  const SX = -3.2;
+  const SZ = trackZ(SX) - 2.15;
   const faceTrack = Math.PI;
 
-  // --- Platform (low, clearly subordinate to houses) ---
+  // --- Platform: long enough for the diesel car ---
   const plat = new MeshBuilder('Platform');
-  plat.add(ShapeFactory.box(2.6, 0.22, 1.15), materials.get('concrete'), [0, 0.11, 0]);
-  const edge = ShapeFactory.plane(2.5, 0.1);
+  plat.add(ShapeFactory.box(4.6, 0.24, 1.35), materials.get('concrete'), [0, 0.12, 0]);
+  const edge = ShapeFactory.plane(4.4, 0.12);
   edge.rotateX(-Math.PI / 2);
-  plat.add(edge, materials.get('lineYellow'), [0, 0.225, -0.48]);
-  plat.add(ShapeFactory.box(0.5, 0.1, 0.35), materials.get('concrete'), [1.4, 0.05, 0.12]);
+  plat.add(edge, materials.get('lineYellow'), [0, 0.245, -0.55]);
+  plat.add(ShapeFactory.box(0.55, 0.1, 0.4), materials.get('concrete'), [2.1, 0.05, 0.15]);
   plat.transform([SX, 0.02, SZ], [0, faceTrack, 0]);
   b.child(plat.build());
 
-  // --- Shelter (short — ~1.3m posts, not building-scale) ---
+  // --- Shelter: readable halt, still smaller than houses ---
   const shelter = new MeshBuilder('Shelter');
-  const SW = 1.9;
-  const SD = 0.95;
-  const postH = 1.25;
+  const SW = 2.8;
+  const SD = 1.15;
+  const postH = 1.45;
 
-  shelter.add(ShapeFactory.box(SW, 0.07, SD), materials.get('woodMid'), [0, 0.26, 0]);
+  shelter.add(ShapeFactory.box(SW, 0.08, SD), materials.get('woodMid'), [0, 0.28, 0]);
 
   const postGeo = ShapeFactory.box(0.1, postH, 0.1);
   for (const [px, pz] of [
@@ -44,55 +44,55 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
     [-SW / 2 + 0.1, SD / 2 - 0.1],
     [SW / 2 - 0.1, SD / 2 - 0.1],
   ] as const) {
-    shelter.add(postGeo, materials.get('woodDark'), [px, 0.26 + postH / 2, pz]);
+    shelter.add(postGeo, materials.get('woodDark'), [px, 0.28 + postH / 2, pz]);
   }
 
   shelter.add(
-    ShapeFactory.box(SW - 0.12, postH - 0.15, 0.05),
+    ShapeFactory.box(SW - 0.15, postH - 0.18, 0.05),
     materials.get('wall'),
-    [0, 0.26 + postH / 2, SD / 2 - 0.1],
+    [0, 0.28 + postH / 2, SD / 2 - 0.1],
   );
   shelter.add(
-    ShapeFactory.box(0.05, postH * 0.55, SD - 0.18),
+    ShapeFactory.box(0.05, postH * 0.55, SD - 0.2),
     materials.get('wallShade'),
-    [-SW / 2 + 0.1, 0.26 + postH * 0.28, 0],
+    [-SW / 2 + 0.1, 0.28 + postH * 0.28, 0],
   );
   shelter.add(
-    ShapeFactory.box(0.05, postH * 0.55, SD - 0.18),
+    ShapeFactory.box(0.05, postH * 0.55, SD - 0.2),
     materials.get('wallShade'),
-    [SW / 2 - 0.1, 0.26 + postH * 0.28, 0],
+    [SW / 2 - 0.1, 0.28 + postH * 0.28, 0],
   );
   shelter.add(
     ShapeFactory.box(SW, 0.08, 0.08),
     materials.get('woodDark'),
-    [0, 0.26 + postH - 0.04, -SD / 2 + 0.08],
+    [0, 0.28 + postH - 0.04, -SD / 2 + 0.08],
   );
 
-  // Gabled roof — small overhang
-  const roofRidgeH = 0.32;
-  const overhang = 0.2;
-  const roofGeo = ShapeFactory.box(SW + overhang * 2, 0.05, SD / 2 + overhang * 0.55);
+  // Gabled roof
+  const roofRidgeH = 0.38;
+  const overhang = 0.24;
+  const roofGeo = ShapeFactory.box(SW + overhang * 2, 0.06, SD / 2 + overhang * 0.6);
   const roofL = new THREE.Mesh(roofGeo, materials.get('roof'));
-  roofL.position.set(0, 0.26 + postH + roofRidgeH / 2, -SD / 4 - 0.04);
+  roofL.position.set(0, 0.28 + postH + roofRidgeH / 2, -SD / 4 - 0.04);
   roofL.rotation.x = -0.4;
   roofL.castShadow = true;
   roofL.receiveShadow = true;
   shelter.child(roofL);
   const roofR = new THREE.Mesh(roofGeo, materials.get('roof'));
-  roofR.position.set(0, 0.26 + postH + roofRidgeH / 2, SD / 4 + 0.04);
+  roofR.position.set(0, 0.28 + postH + roofRidgeH / 2, SD / 4 + 0.04);
   roofR.rotation.x = 0.4;
   roofR.castShadow = true;
   roofR.receiveShadow = true;
   shelter.child(roofR);
   shelter.add(
-    ShapeFactory.box(SW + 0.12, 0.05, 0.07),
+    ShapeFactory.box(SW + 0.15, 0.05, 0.08),
     materials.get('roofEdge'),
-    [0, 0.26 + postH + roofRidgeH, 0],
+    [0, 0.28 + postH + roofRidgeH, 0],
   );
   shelter.add(
-    ShapeFactory.box(SW + overhang * 1.3, 0.025, SD + overhang),
+    ShapeFactory.box(SW + overhang * 1.3, 0.03, SD + overhang),
     materials.get('woodLight'),
-    [0, 0.26 + postH - 0.015, 0],
+    [0, 0.28 + postH - 0.015, 0],
   );
 
   shelter.transform([SX, 0, SZ], [0, faceTrack, 0]);

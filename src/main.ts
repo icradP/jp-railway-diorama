@@ -156,8 +156,8 @@ async function main(): Promise<void> {
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 120);
   // Product-shot framing for 15×12 residential block
-  const camDist = 22;
-  const camElev = THREE.MathUtils.degToRad(34);
+  const camDist = 19;
+  const camElev = THREE.MathUtils.degToRad(36);
   const camAzim = THREE.MathUtils.degToRad(32);
   camera.position.set(
     Math.sin(camAzim) * Math.cos(camElev) * camDist,
