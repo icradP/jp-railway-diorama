@@ -29,6 +29,90 @@ function place(g: THREE.Group, rotY: number): THREE.Group {
   return g;
 }
 
+/**
+ * Proper gable roof: two slopes meeting at a ridge, eaves overhang.
+ * Geometry is computed so planes meet cleanly at the ridge (no floating slabs).
+ */
+function addGableRoof(
+  g: MeshBuilder,
+  opts: {
+    W: number;
+    D: number;
+    roofY: number; // top of walls
+    ridge: number; // ridge height above wall top
+    overhang: number;
+    roofMat: THREE.Material;
+    edgeMat: THREE.Material;
+    wallMat: THREE.Material;
+    thickness?: number;
+  },
+): void {
+  const { W, D, roofY, ridge, overhang, roofMat, edgeMat, wallMat } = opts;
+  const th = opts.thickness ?? 0.08;
+  const halfSpan = D / 2 + overhang;
+  const slope = Math.hypot(halfSpan, ridge);
+  const angle = Math.atan2(ridge, halfSpan);
+  const roofW = W + overhang * 2;
+
+  // Left slope (−Z): +Z edge at ridge
+  const slabGeo = ShapeFactory.box(roofW, th, slope);
+  const L = new THREE.Mesh(slabGeo, roofMat);
+  L.position.set(0, roofY + ridge / 2, -halfSpan / 2);
+  L.rotation.x = angle; // +Z tip lifts toward ridge
+  L.castShadow = true;
+  L.receiveShadow = true;
+  g.child(L);
+
+  // Right slope (+Z): −Z edge at ridge
+  const R = new THREE.Mesh(slabGeo, roofMat);
+  R.position.set(0, roofY + ridge / 2, halfSpan / 2);
+  R.rotation.x = -angle;
+  R.castShadow = true;
+  R.receiveShadow = true;
+  g.child(R);
+
+  // Ridge cap
+  g.add(ShapeFactory.box(roofW - 0.05, th * 1.2, 0.14), edgeMat, [0, roofY + ridge + th * 0.3, 0]);
+
+  // Eave fascia boards (front/back)
+  const fascia = ShapeFactory.box(roofW, 0.1, 0.06);
+  g.add(fascia, edgeMat, [0, roofY + 0.02, halfSpan]);
+  g.add(fascia, edgeMat, [0, roofY + 0.02, -halfSpan]);
+
+  // Side fascia — skip (gable triangles cover ends; eaves fascia already added)
+  // (removed invisible placeholder meshes)
+
+  // Gable end triangles (wall material) — base at wall top, apex at ridge
+  const shape = new THREE.Shape();
+  shape.moveTo(-halfSpan, 0);
+  shape.lineTo(halfSpan, 0);
+  shape.lineTo(0, ridge);
+  shape.closePath();
+  const gableGeo = ShapeFactory.extrude(shape, 0.1);
+  for (const s of [-1, 1] as const) {
+    const m = new THREE.Mesh(gableGeo, wallMat);
+    m.rotation.y = Math.PI / 2;
+    m.position.set(s * (W / 2 + 0.01), roofY, 0);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    g.child(m);
+  }
+}
+
+/** Vertical corner boards + one belt course — cleaner than full-perimeter rings. */
+function addWallTrim(
+  g: MeshBuilder,
+  W: number,
+  D: number,
+  yBase: number,
+  yTop: number,
+  mat: THREE.Material,
+): void {
+  const h = yTop - yBase;
+  // Belt course at mid height
+  g.add(ShapeFactory.box(W + 0.04, 0.05, D + 0.04), mat, [0, yBase + h * 0.55, 0]);
+}
+
 /** Traditional, larger, engawa + deep eaves + complex gable.
  *  Scale reference: door ≈ 1.7 · 1F ceiling 2.4 · 2F 2.2 · total wall ~5.0
  */
@@ -98,39 +182,23 @@ function buildHouseA(rng: Rng): THREE.Group {
     g.add(ShapeFactory.box(0.035, 0.42, 0.035), materials.get('metalGray'), [-0.75 + i * 0.32, balY + 0.24, D / 2 + 0.7]);
   }
 
-  // Deep gable roof
-  const roofY = plinth + H1 + 0.08 + H2;
-  const ridge = 0.85;
-  const ov = 0.55;
-  const slab = ShapeFactory.box(W + ov * 2, 0.1, D / 2 + ov * 0.9);
-  const L = new THREE.Mesh(slab, roof);
-  L.position.set(0, roofY + ridge * 0.42, -(D / 2 + ov * 0.32));
-  L.rotation.x = -0.4;
-  L.castShadow = true;
-  L.receiveShadow = true;
-  g.child(L);
-  const R = new THREE.Mesh(slab, roof);
-  R.position.set(0, roofY + ridge * 0.42, D / 2 + ov * 0.32);
-  R.rotation.x = 0.4;
-  R.castShadow = true;
-  R.receiveShadow = true;
-  g.child(R);
-  g.add(ShapeFactory.box(W + ov * 1.6, 0.1, 0.14), materials.get('houseRoofEdge'), [0, roofY + ridge, 0]);
-
-  const gable = new THREE.Shape();
-  gable.moveTo(-D / 2 - ov * 0.45, 0);
-  gable.lineTo(D / 2 + ov * 0.45, 0);
-  gable.lineTo(0, ridge);
-  gable.closePath();
-  const gg = ShapeFactory.extrude(gable, 0.12);
-  gg.center();
-  for (const s of [-1, 1] as const) {
-    const m = new THREE.Mesh(gg, wall);
-    m.rotation.y = Math.PI / 2;
-    m.position.set(s * (W / 2 + 0.05), roofY + ridge * 0.42, 0);
-    m.castShadow = true;
-    g.child(m);
+  // Downspouts
+  for (const sx of [-1, 1] as const) {
+    g.add(ShapeFactory.cylinder(0.035, 0.035, plinth + H1 + 0.08 + H2, 6), materials.get('metalGray'), [sx * (W / 2 - 0.08), (plinth + H1 + H2) / 2, D / 2 - 0.08]);
   }
+
+  addWallTrim(g, W, D, plinth, plinth + H1, trim);
+  addGableRoof(g, {
+    W,
+    D,
+    roofY: plinth + H1 + 0.08 + H2,
+    ridge: 0.85,
+    overhang: 0.45,
+    roofMat: roof,
+    edgeMat: materials.get('houseRoofEdge'),
+    wallMat: wall,
+    thickness: 0.09,
+  });
 
   void rng;
   return g.build();
@@ -224,24 +292,18 @@ function buildHouseC(rng: Rng): THREE.Group {
   g.add(ShapeFactory.box(W - 0.1, H2, D - 0.1), wall, [0, y2, 0]);
   g.add(ShapeFactory.box(W - 0.06, 0.65, D - 0.06), wood, [0, y2 - 0.3, 0]);
 
-  // Low-pitch gable
-  const roofY = plinth + H1 + 0.06 + H2;
-  const ridge = 0.65;
-  const ov = 0.42;
-  const slab = ShapeFactory.box(W + ov * 2, 0.09, D / 2 + ov * 0.75);
-  const L = new THREE.Mesh(slab, roof);
-  L.position.set(0, roofY + ridge * 0.4, -(D / 2 + ov * 0.28));
-  L.rotation.x = -0.34;
-  L.castShadow = true;
-  L.receiveShadow = true;
-  g.child(L);
-  const R = new THREE.Mesh(slab, roof);
-  R.position.set(0, roofY + ridge * 0.4, D / 2 + ov * 0.28);
-  R.rotation.x = 0.34;
-  R.castShadow = true;
-  R.receiveShadow = true;
-  g.child(R);
-  g.add(ShapeFactory.box(W + ov, 0.07, 0.12), materials.get('houseRoofEdge'), [0, roofY + ridge, 0]);
+  // Low-pitch gable (Showa)
+  addGableRoof(g, {
+    W,
+    D,
+    roofY: plinth + H1 + 0.06 + H2,
+    ridge: 0.55,
+    overhang: 0.35,
+    roofMat: roof,
+    edgeMat: materials.get('houseRoofEdge'),
+    wallMat: wall,
+    thickness: 0.07,
+  });
 
   // Entrance
   g.add(ShapeFactory.box(0.8, 1.7, 0.07), materials.get('houseDoor'), [-0.25, plinth + 0.9, D / 2 + 0.02]);

@@ -57,27 +57,27 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
     b.child(pole);
   }
 
-  // Wires between poles
-  for (let i = 0; i < polePositions.length - 1; i++) {
-    const a = polePositions[i].clone();
-    const bb = polePositions[i + 1].clone();
+  // Wires only between poles that form a natural line (no scene-crossing diagonals)
+  const pairs: [number, number][] = [
+    [0, 2], // east pole → north road pole
+    [2, 1], // north → west
+    [3, 1], // south → west
+  ];
+  for (const [ia, ib] of pairs) {
+    const a = polePositions[ia].clone();
+    const bb = polePositions[ib].clone();
     a.y += 3.85;
     bb.y += 3.85;
-    for (const dy of [0, 0.32] as const) {
+    for (const dy of [0, 0.3] as const) {
       const wireGeo = ShapeFactory.catenary(
         a.clone().setY(a.y - dy),
         bb.clone().setY(bb.y - dy),
-        0.28 + dy * 0.1,
+        0.22 + dy * 0.08,
         10,
       );
       b.add(wireGeo, materials.get('wire'));
     }
   }
-
-  // Wire from east pole toward station
-  const p0 = polePositions[0].clone().setY(3.85);
-  const p1 = new THREE.Vector3(-3.4, 2.8, trackZ(-3.4) - 2.45);
-  b.add(ShapeFactory.catenary(p0, p1, 0.35, 12), materials.get('wire'));
 
   // --- Fence (wooden, rural) near field ---
   function fenceRun(x0: number, z0: number, x1: number, z1: number, posts: number): void {
@@ -99,8 +99,8 @@ export function buildProps(rng: Rng, trackZ: (x: number) => number): THREE.Group
     }
   }
 
-  fenceRun(-5.2, -2.8, -2.0, -3.2, 6);
-  fenceRun(2.5, -3.4, 5.0, -2.6, 5);
+  fenceRun(-5.4, -3.0, -2.2, -3.4, 5);
+  fenceRun(2.6, -3.6, 5.2, -2.8, 5);
 
   // --- Small warning signs along track ---
   function trackSign(x: number, side: number): void {

@@ -145,7 +145,7 @@ export const ShapeFactory = {
       p.y -= Math.sin(t * Math.PI) * sag;
       pts.push(p);
     }
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), segments, 0.009, 5, false);
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), segments, 0.006, 5, false);
   },
 
   /** Slightly curved railway sleeper bed path along X. */
