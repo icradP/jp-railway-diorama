@@ -9,37 +9,33 @@ export interface StationHandles {
 }
 
 /**
- * Tiny unmanned rural station shelter on the +Z side of the track.
- * Wooden posts, cream walls, dark tiled roof, bench, vending machine, warm lamp.
+ * Compact unmanned halt on the −Z side of the track (vacant-lot side),
+ * west of the road. Shelter opens toward the rails; train stops alongside.
  */
 export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHandles {
   const b = new MeshBuilder('Station');
-  // Place station west of crossing, +Z of track
-  const SX = -2.6;
-  const SZ = trackZ(SX) + 2.35;
+  const SX = -3.4;
+  const SZ = trackZ(SX) - 2.45;
+  const faceTrack = Math.PI;
 
   // --- Platform ---
   const plat = new MeshBuilder('Platform');
-  plat.add(ShapeFactory.box(3.4, 0.28, 1.6), materials.get('concrete'), [0, 0.14, 0]);
-  // Platform edge line (yellow safety)
-  const edge = ShapeFactory.plane(3.3, 0.12);
+  plat.add(ShapeFactory.box(3.2, 0.28, 1.5), materials.get('concrete'), [0, 0.14, 0]);
+  const edge = ShapeFactory.plane(3.1, 0.12);
   edge.rotateX(-Math.PI / 2);
-  plat.add(edge, materials.get('lineYellow'), [0, 0.285, -0.68]);
-  // Steps toward road
-  plat.add(ShapeFactory.box(0.7, 0.12, 0.5), materials.get('concrete'), [1.85, 0.06, 0.2]);
-  plat.transform([SX, 0.02, SZ]);
+  plat.add(edge, materials.get('lineYellow'), [0, 0.285, -0.62]);
+  plat.add(ShapeFactory.box(0.65, 0.12, 0.45), materials.get('concrete'), [1.75, 0.06, 0.15]);
+  plat.transform([SX, 0.02, SZ], [0, faceTrack, 0]);
   b.child(plat.build());
 
   // --- Shelter ---
   const shelter = new MeshBuilder('Shelter');
-  const SW = 2.6; // width along X
-  const SD = 1.15; // depth along Z
-  const postH = 1.85;
+  const SW = 2.4;
+  const SD = 1.1;
+  const postH = 1.75;
 
-  // Floor
   shelter.add(ShapeFactory.box(SW, 0.08, SD), materials.get('woodMid'), [0, 0.32, 0]);
 
-  // Corner posts (dark wood)
   const postGeo = ShapeFactory.box(0.1, postH, 0.1);
   for (const [px, pz] of [
     [-SW / 2 + 0.1, -SD / 2 + 0.1],
@@ -50,13 +46,11 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
     shelter.add(postGeo, materials.get('woodDark'), [px, 0.32 + postH / 2, pz]);
   }
 
-  // Back wall (cream)
   shelter.add(
     ShapeFactory.box(SW - 0.15, postH - 0.2, 0.06),
     materials.get('wall'),
     [0, 0.32 + postH / 2, SD / 2 - 0.12],
   );
-  // Side half-walls
   shelter.add(
     ShapeFactory.box(0.06, postH * 0.55, SD - 0.2),
     materials.get('wallShade'),
@@ -67,18 +61,15 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
     materials.get('wallShade'),
     [SW / 2 - 0.12, 0.32 + postH * 0.28, 0],
   );
-
-  // Horizontal beam
   shelter.add(
     ShapeFactory.box(SW, 0.1, 0.1),
     materials.get('woodDark'),
     [0, 0.32 + postH - 0.05, -SD / 2 + 0.1],
   );
 
-  // --- Gabled roof ---
-  const roofRidgeH = 0.45;
-  const overhang = 0.28;
-  // Two roof slabs
+  // Gabled roof
+  const roofRidgeH = 0.42;
+  const overhang = 0.26;
   const roofGeo = ShapeFactory.box(SW + overhang * 2, 0.06, SD / 2 + overhang * 0.7);
   const roofL = new THREE.Mesh(roofGeo, materials.get('roof'));
   roofL.position.set(0, 0.32 + postH + roofRidgeH / 2, -SD / 4 - 0.05);
@@ -86,126 +77,92 @@ export function buildStation(rng: Rng, trackZ: (x: number) => number): StationHa
   roofL.castShadow = true;
   roofL.receiveShadow = true;
   shelter.child(roofL);
-
   const roofR = new THREE.Mesh(roofGeo, materials.get('roof'));
   roofR.position.set(0, 0.32 + postH + roofRidgeH / 2, SD / 4 + 0.05);
   roofR.rotation.x = 0.42;
   roofR.castShadow = true;
   roofR.receiveShadow = true;
   shelter.child(roofR);
-
-  // Ridge beam
   shelter.add(
-    ShapeFactory.box(SW + 0.2, 0.06, 0.08),
+    ShapeFactory.box(SW + 0.15, 0.06, 0.08),
     materials.get('roofEdge'),
     [0, 0.32 + postH + roofRidgeH, 0],
   );
-
-  // Tile suggestion — thin strips on roof
-  for (let i = 0; i < 7; i++) {
-    const t = (i / 6) * (SD / 2 + overhang * 0.5);
-    shelter.add(
-      ShapeFactory.box(SW + overhang * 2 - 0.05, 0.02, 0.04),
-      materials.get('roofEdge'),
-      [0, 0.32 + postH + 0.18 + (SD / 4 - t) * 0.35, -t - 0.05],
-      [-0.42, 0, 0],
-    );
-  }
-
-  // Eave underside
   shelter.add(
-    ShapeFactory.box(SW + overhang * 1.5, 0.03, SD + overhang * 1.2),
+    ShapeFactory.box(SW + overhang * 1.4, 0.03, SD + overhang * 1.1),
     materials.get('woodLight'),
     [0, 0.32 + postH - 0.02, 0],
   );
 
-  shelter.transform([SX, 0, SZ]);
+  shelter.transform([SX, 0, SZ], [0, faceTrack, 0]);
   b.child(shelter.build());
 
-  // --- Bench under shelter ---
+  // --- Furniture (same local frame as halt) ---
+  const furn = new MeshBuilder('StationFurniture');
+
   const bench = new MeshBuilder('Bench');
-  bench.add(ShapeFactory.box(1.3, 0.06, 0.35), materials.get('benchWood'), [0, 0.42, 0]);
-  bench.add(ShapeFactory.box(1.3, 0.06, 0.08), materials.get('benchWood'), [0, 0.72, -0.14]);
-  for (const bx of [-0.5, 0.5] as const) {
+  bench.add(ShapeFactory.box(1.2, 0.06, 0.35), materials.get('benchWood'), [0, 0.42, 0]);
+  bench.add(ShapeFactory.box(1.2, 0.06, 0.08), materials.get('benchWood'), [0, 0.72, -0.14]);
+  for (const bx of [-0.45, 0.45] as const) {
     bench.add(ShapeFactory.box(0.06, 0.42, 0.3), materials.get('woodDark'), [bx, 0.21, 0]);
     bench.add(ShapeFactory.box(0.06, 0.28, 0.05), materials.get('woodDark'), [bx, 0.55, -0.14]);
   }
-  bench.transform([SX - 0.2, 0.3, SZ + 0.15]);
-  b.child(bench.build());
+  bench.transform([-0.15, 0.3, 0.1]);
+  furn.child(bench.build());
 
-  // --- Station sign (小字站名牌) ---
   const sign = new MeshBuilder('StationSign');
-  sign.add(ShapeFactory.cylinder(0.03, 0.035, 1.3, 6), materials.get('metalGray'), [0, 0.65, 0]);
-  const plate = ShapeFactory.box(0.7, 0.28, 0.04);
-  sign.add(plate, materials.get('signWhite'), [0, 1.25, 0]);
-  // Green stripe (JR local style)
-  sign.add(ShapeFactory.box(0.7, 0.06, 0.045), materials.get('leafC'), [0, 1.32, 0]);
-  // Text suggestion blocks
-  sign.add(ShapeFactory.box(0.35, 0.08, 0.02), materials.get('warnBlack'), [0, 1.22, 0.03]);
-  sign.transform([SX + 1.4, 0.28, SZ - 0.75]);
-  b.child(sign.build());
+  sign.add(ShapeFactory.cylinder(0.03, 0.035, 1.25, 6), materials.get('metalGray'), [0, 0.62, 0]);
+  sign.add(ShapeFactory.box(0.65, 0.26, 0.04), materials.get('signWhite'), [0, 1.2, 0]);
+  sign.add(ShapeFactory.box(0.65, 0.06, 0.045), materials.get('leafC'), [0, 1.27, 0]);
+  sign.add(ShapeFactory.box(0.32, 0.08, 0.02), materials.get('warnBlack'), [0, 1.17, 0.03]);
+  sign.transform([1.3, 0.28, -0.55]);
+  furn.child(sign.build());
 
-  // --- Warm hanging lamp under eave ---
   const lamp = new MeshBuilder('StationLamp');
-  lamp.add(ShapeFactory.cylinder(0.015, 0.015, 0.25, 5), materials.get('metalDark'), [0, 0.12, 0]);
-  lamp.add(ShapeFactory.cone(0.12, 0.12, 8), materials.get('metalDark'), [0, -0.02, 0]);
-  const bulbGeo = ShapeFactory.ico(0.05, 0);
-  lamp.add(bulbGeo, materials.get('lampWarm'), [0, -0.06, 0]);
-  const lampLight = new THREE.PointLight(0xffb84d, 0.85, 3.5, 2);
+  lamp.add(ShapeFactory.cylinder(0.015, 0.015, 0.22, 5), materials.get('metalDark'), [0, 0.11, 0]);
+  lamp.add(ShapeFactory.cone(0.11, 0.1, 8), materials.get('metalDark'), [0, -0.02, 0]);
+  lamp.add(ShapeFactory.ico(0.05, 0), materials.get('lampWarm'), [0, -0.05, 0]);
+  const lampLight = new THREE.PointLight(0xffb84d, 0.85, 3.2, 2);
   lampLight.position.set(0, -0.08, 0);
   lampLight.castShadow = false;
   lamp.child(lampLight);
-  lamp.transform([SX + 0.3, 0.32 + 1.8, SZ]);
-  b.child(lamp.build());
+  lamp.transform([0.25, 0.32 + 1.7, -0.2]);
+  furn.child(lamp.build());
 
-  // --- Vending machine ---
   const vend = new MeshBuilder('VendingMachine');
-  vend.add(ShapeFactory.box(0.75, 1.55, 0.55), materials.get('vendingBody'), [0, 0.78, 0]);
-  // White side panel
-  vend.add(ShapeFactory.box(0.08, 1.4, 0.5), materials.get('vendingWhite'), [-0.34, 0.78, 0]);
-  // Screen / product window
-  vend.add(ShapeFactory.box(0.5, 0.7, 0.06), materials.get('vendingScreen'), [0, 1.05, 0.26]);
-  // Buttons
+  vend.add(ShapeFactory.box(0.7, 1.45, 0.52), materials.get('vendingBody'), [0, 0.75, 0]);
+  vend.add(ShapeFactory.box(0.08, 1.3, 0.48), materials.get('vendingWhite'), [-0.32, 0.75, 0]);
+  vend.add(ShapeFactory.box(0.48, 0.65, 0.06), materials.get('vendingScreen'), [0, 1.0, 0.25]);
   for (let i = 0; i < 3; i++) {
-    vend.add(
-      ShapeFactory.box(0.12, 0.06, 0.03),
-      materials.get('vendingWhite'),
-      [-0.15 + i * 0.15, 0.45, 0.28],
-    );
+    vend.add(ShapeFactory.box(0.1, 0.05, 0.03), materials.get('vendingWhite'), [-0.14 + i * 0.14, 0.42, 0.27]);
   }
-  // Coin slot
-  vend.add(ShapeFactory.box(0.08, 0.03, 0.02), materials.get('metalDark'), [0.22, 0.55, 0.28]);
-  // Top light strip
-  vend.add(ShapeFactory.box(0.7, 0.08, 0.08), materials.get('vendingWhite'), [0, 1.58, 0.2]);
-  // Feet
-  for (const fx of [-0.28, 0.28] as const) {
-    vend.add(ShapeFactory.box(0.1, 0.06, 0.4), materials.get('metalDark'), [fx, 0.03, 0]);
-  }
-  const vendLight = new THREE.PointLight(0x6a9fff, 0.35, 1.8, 2);
-  vendLight.position.set(0, 1.05, 0.4);
+  vend.add(ShapeFactory.box(0.08, 0.03, 0.02), materials.get('metalDark'), [0.2, 0.52, 0.27]);
+  vend.add(ShapeFactory.box(0.65, 0.07, 0.07), materials.get('vendingWhite'), [0, 1.5, 0.18]);
+  const vendLight = new THREE.PointLight(0x6a9fff, 0.4, 1.8, 2);
+  vendLight.position.set(0, 1.0, 0.35);
   vend.child(vendLight);
-  vend.transform([SX - 1.7, 0.1, SZ + 0.3]);
-  b.child(vend.build());
+  vend.transform([1.35, 0.1, 0.15]);
+  furn.child(vend.build());
 
-  // --- Trash bin ---
   const trash = new MeshBuilder('TrashBin');
-  trash.add(ShapeFactory.cylinder(0.18, 0.16, 0.45, 8), materials.get('trash'), [0, 0.225, 0]);
-  trash.add(ShapeFactory.cylinder(0.19, 0.19, 0.04, 8), materials.get('metalDark'), [0, 0.47, 0]);
-  trash.transform([SX + 1.1, 0.1, SZ + 0.55]);
-  b.child(trash.build());
+  trash.add(ShapeFactory.cylinder(0.16, 0.14, 0.42, 8), materials.get('trash'), [0, 0.21, 0]);
+  trash.add(ShapeFactory.cylinder(0.17, 0.17, 0.04, 8), materials.get('metalDark'), [0, 0.44, 0]);
+  trash.transform([-1.25, 0.1, 0.35]);
+  furn.child(trash.build());
 
-  // --- Rural street lamp ---
   const street = new MeshBuilder('StreetLamp');
-  street.add(ShapeFactory.cylinder(0.04, 0.05, 2.6, 6), materials.get('metalGray'), [0, 1.3, 0]);
-  // Curved arm (simple box bend)
-  street.add(ShapeFactory.box(0.5, 0.05, 0.05), materials.get('metalGray'), [0.22, 2.55, 0]);
-  street.add(ShapeFactory.box(0.05, 0.12, 0.16), materials.get('metalDark'), [0.48, 2.48, 0]);
-  street.add(ShapeFactory.box(0.08, 0.04, 0.12), materials.get('lampWarm'), [0.48, 2.42, 0]);
-  const sl = new THREE.PointLight(0xffb84d, 0.4, 4, 2);
-  sl.position.set(0.48, 2.4, 0);
+  street.add(ShapeFactory.cylinder(0.04, 0.05, 2.4, 6), materials.get('metalGray'), [0, 1.2, 0]);
+  street.add(ShapeFactory.box(0.45, 0.05, 0.05), materials.get('metalGray'), [0.2, 2.35, 0]);
+  street.add(ShapeFactory.box(0.05, 0.1, 0.14), materials.get('metalDark'), [0.42, 2.28, 0]);
+  street.add(ShapeFactory.box(0.07, 0.04, 0.1), materials.get('lampWarm'), [0.42, 2.22, 0]);
+  const sl = new THREE.PointLight(0xffb84d, 0.4, 3.8, 2);
+  sl.position.set(0.42, 2.2, 0);
   street.child(sl);
-  street.transform([SX + 2.2, 0.05, SZ + 0.9]);
-  b.child(street.build());
+  street.transform([-1.6, 0.05, 0.7]);
+  furn.child(street.build());
+
+  furn.transform([SX, 0, SZ], [0, faceTrack, 0]);
+  b.child(furn.build());
 
   void rng;
   return { group: b.build() };

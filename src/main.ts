@@ -18,6 +18,7 @@ import { buildRailway } from './scene/railway';
 import { buildCrossing } from './scene/crossing';
 import { buildRoad } from './scene/road';
 import { buildResidential, createClothesWind } from './scene/house';
+import { buildStation } from './scene/station';
 import { buildVegetation } from './scene/vegetation';
 import { buildProps } from './scene/props';
 import { buildEnvironment } from './scene/environment';
@@ -119,6 +120,10 @@ async function main(): Promise<void> {
   // 田 residential block: 3 一户建 + empty lot
   const residential = buildResidential(rng);
   diorama.add(residential);
+
+  // Compact unmanned halt beside the vacant lot
+  const station = buildStation(rng, railway.trackZ);
+  diorama.add(station.group);
 
   const veg = buildVegetation(rng);
   diorama.add(veg.group);

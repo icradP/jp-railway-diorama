@@ -18,8 +18,8 @@ const HALF = CAR_L / 2;
 
 const APPROACH_START = 9.2;
 const DEPART_END = -9.6;
-/** Stop beside the open area west of the crossing (vacant-lot side of track). */
-const STOP_X = -2.6;
+/** Stop beside the unmanned halt on the vacant-lot side. */
+const STOP_X = -3.4;
 const CROSS_X = 0;
 const OCCUPY_PAD = 1.0;
 const TRIGGER_DIST = 4.8;

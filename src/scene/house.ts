@@ -283,6 +283,7 @@ export function buildResidential(rng: Rng): THREE.Group {
   root.add(buildYard(rng, 4.6, -3.8, 'C'));
 
   // ========== Empty lot: bottom-left (−X, −Z) ==========
+  // Station halt sits on the track edge of this quadrant (see station.ts)
   root.add(buildEmptyLot(rng));
 
   // Shared: block walls along lot edges (not full perimeter — open feel)
