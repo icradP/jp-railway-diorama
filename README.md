@@ -2,6 +2,10 @@
 
 Three.js + TypeScript 的可 360° 环绕观察的日本乡村铁路道口微缩景观。
 
+**在线演示（GitHub Pages）：** https://icradp.github.io/jp-railway-diorama/
+
+**仓库：** https://github.com/icradP/jp-railway-diorama
+
 ## 运行
 
 ```bash
