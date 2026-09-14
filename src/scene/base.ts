@@ -43,19 +43,19 @@ export function buildDioramaBase(rng: Rng): THREE.Group {
     b.add(footGeo, materials.get('plinth'), [fx, -H - 0.06, fz]);
   }
 
-  // Ground: packed earth / gravel (Japanese residential — not a lawn)
-  const ground = ShapeFactory.groundPatch(W - 0.15, D - 0.15, 28, 22, 0.04, rng);
-  b.add(ground, materials.get('dirt'), [0, 0.001, 0]);
+  // Single flat ground slab — no coplanar patch stack (avoids z-fight flicker)
+  const ground = ShapeFactory.box(W - 0.12, 0.04, D - 0.12);
+  b.add(ground, materials.get('dirt'), [0, 0.02, 0]);
 
-  // Gravel / concrete yard patches
-  const patchGeo = ShapeFactory.plane(2.0, 1.4);
+  // A few raised gravel yards (clear vertical gap above ground)
+  const patchGeo = ShapeFactory.box(1.8, 0.03, 1.2);
   const patchMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 14; i++) {
-    const x = rng.range(-6.5, 6.5);
-    const z = rng.range(-5.2, 5.2);
-    if (Math.abs(x) < 1.8 || Math.abs(z) < 1.4) continue;
+  for (let i = 0; i < 10; i++) {
+    const x = rng.range(-6.2, 6.2);
+    const z = rng.range(-4.8, 4.8);
+    if (Math.abs(x) < 1.9 || Math.abs(z) < 1.5) continue;
     patchMats.push(
-      mat4(x, 0.012, z, -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.7, 1.5), rng.range(0.6, 1.2), 1),
+      mat4(x, 0.055, z, 0, rng.range(0, Math.PI), 0, rng.range(0.8, 1.3), 1, rng.range(0.7, 1.15)),
     );
   }
   b.instance(patchGeo, materials.get('stone'), patchMats, false, true);

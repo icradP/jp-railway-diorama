@@ -25,15 +25,13 @@ import { buildProps } from './scene/props';
 import { buildEnvironment } from './scene/environment';
 import { buildTrain } from './scene/train';
 
-/** Lightweight color grade — teal shadows, warm highlights, soft vignette, subtle edge ink. */
+/** Color grade — warm highlights, cool shadows, vignette. No edge-ink (caused ground flicker). */
 const ColorGradeShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
-    vignetteStrength: { value: 0.38 },
-    warmth: { value: 0.06 },
-    contrast: { value: 1.08 },
-    edgeInk: { value: 0.05 },
-    resolution: { value: new THREE.Vector2(1, 1) },
+    vignetteStrength: { value: 0.32 },
+    warmth: { value: 0.05 },
+    contrast: { value: 1.06 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -47,26 +45,13 @@ const ColorGradeShader = {
     uniform float vignetteStrength;
     uniform float warmth;
     uniform float contrast;
-    uniform float edgeInk;
-    uniform vec2 resolution;
     varying vec2 vUv;
     void main() {
       vec4 color = texture2D(tDiffuse, vUv);
       float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-      // Warm highlights, cool shadows
       color.rgb += warmth * smoothstep(0.45, 1.0, luma);
       color.rgb -= warmth * 0.55 * (1.0 - smoothstep(0.0, 0.4, luma)) * vec3(0.15, 0.05, -0.08);
-      // Contrast around mid gray
       color.rgb = (color.rgb - 0.5) * contrast + 0.5;
-      // Subtle luminance edge ink (miniature outline feel)
-      vec2 px = 1.0 / resolution;
-      float l = dot(texture2D(tDiffuse, vUv + vec2(-px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));
-      float r = dot(texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));
-      float u = dot(texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));
-      float d = dot(texture2D(tDiffuse, vUv + vec2(0.0, -px.y)).rgb, vec3(0.299, 0.587, 0.114));
-      float edge = abs(l - r) + abs(u - d);
-      color.rgb *= 1.0 - clamp(edge * edgeInk * 6.0, 0.0, 0.22);
-      // Vignette
       vec2 q = vUv - 0.5;
       float vig = 1.0 - dot(q, q) * vignetteStrength * 2.4;
       color.rgb *= clamp(vig, 0.0, 1.0);
@@ -208,7 +193,6 @@ async function main(): Promise<void> {
   composer.addPass(bloom);
 
   const gradePass = new ShaderPass(ColorGradeShader);
-  gradePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
   composer.addPass(gradePass);
 
   const smaa = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
@@ -269,7 +253,6 @@ async function main(): Promise<void> {
     renderer.setSize(w, h);
     composer.setSize(w, h);
     bloom.setSize(w, h);
-    gradePass.uniforms.resolution.value.set(w, h);
   }
   window.addEventListener('resize', onResize);
 

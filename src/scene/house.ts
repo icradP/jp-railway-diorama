@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MeshBuilder, mat4 } from '../core/mesh';
+import { MeshBuilder } from '../core/mesh';
 import { materials } from '../core/materials';
 import { ShapeFactory } from '../core/shapes';
 import { Rng } from '../core/rng';
@@ -442,8 +442,8 @@ function buildConcretePipes(rng: Rng): THREE.Group {
   pipe(CX, R, CZ + 0.65);
   pipe(CX, R * 2 + 0.04, CZ);
 
-  // Dirt pad under pipes
-  p.add(ShapeFactory.box(2.6, 0.04, 2.2), materials.get('dirtLight'), [CX, 0.02, CZ]);
+  // Dirt pad under pipes — raised, not coplanar
+  p.add(ShapeFactory.box(2.6, 0.04, 2.2), materials.get('dirtLight'), [CX, 0.055, CZ]);
   void rng;
   return p.build();
 }
@@ -590,17 +590,8 @@ function buildEmptyLot(rng: Rng): THREE.Group {
   const CX = -4.4;
   const CZ = -3.6;
 
-  const dirtGeo = ShapeFactory.plane(2.0, 1.5);
-  const dirtMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 5; i++) {
-    dirtMats.push(
-      mat4(CX + rng.range(-2.0, 2.0), 0.012, CZ + rng.range(-1.6, 1.6), -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.5, 1.0), rng.range(0.5, 0.9), 1),
-    );
-  }
-  lot.instance(dirtGeo, materials.get('dirt'), dirtMats, false, true);
-
-  // Flat lawn patch (no instanced blades — no flicker)
-  lot.add(ShapeFactory.box(3.6, 0.02, 2.6), materials.get('grassShade'), [CX, 0.02, CZ]);
+  // Flat lawn patch raised clear of base ground (no coplanar fight)
+  lot.add(ShapeFactory.box(3.4, 0.035, 2.4), materials.get('grassShade'), [CX, 0.05, CZ]);
 
   // Big vacant-lot tree — ~2.8m, shorter than House A ridge
   const tree = new MeshBuilder('LotTree');
