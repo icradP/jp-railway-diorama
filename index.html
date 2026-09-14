@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>日本の踏切 — Railway Crossing Diorama</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a1814'/%3E%3Cpath d='M4 16h24M16 4v24' stroke='%23c43c3c' stroke-width='3'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --ink: #e8e4dc;
+        --muted: rgba(232, 228, 220, 0.55);
+        --accent: #c43c3c;
+        --panel: rgba(18, 16, 14, 0.55);
+        --line: rgba(232, 228, 220, 0.14);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0e1218;
+        color: var(--ink);
+        font-family: 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        -webkit-font-smoothing: antialiased;
+      }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+      .hud {
+        position: fixed;
+        z-index: 10;
+        pointer-events: none;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+      .hud * { pointer-events: none; }
+      .hud--tl { top: 22px; left: 24px; }
+      .hud--tr { top: 22px; right: 24px; text-align: right; }
+      .hud--bl { bottom: 22px; left: 24px; }
+      .hud--br { bottom: 22px; right: 24px; text-align: right; }
+
+      .title {
+        font-size: 13px;
+        color: var(--ink);
+        margin-bottom: 4px;
+      }
+      .sub { color: var(--muted); font-size: 10px; letter-spacing: 0.16em; }
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--ink);
+        border-radius: 2px;
+        cursor: pointer;
+        pointer-events: auto;
+        transition: border-color 0.2s, color 0.2s;
+        user-select: none;
+      }
+      .badge:hover { border-color: rgba(232,228,220,0.35); }
+      .badge.is-on {
+        border-color: var(--accent);
+        color: #f0d0c8;
+      }
+      .keys { color: var(--muted); font-size: 10px; }
+      .keys b { color: var(--ink); font-weight: 500; }
+      .status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin-right: 6px;
+        box-shadow: 0 0 8px rgba(196,60,60,0.8);
+        animation: pulse 1s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
+      }
+      .loading {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0e1218;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        transition: opacity 0.6s ease;
+      }
+      .loading.is-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="loading" id="loading">ASSEMBLING DIORAMA…</div>
+
+    <div class="hud hud--tl">
+      <div class="title">日本の踏切</div>
+      <div class="sub">Railway Crossing Diorama · N-gauge scale</div>
+    </div>
+
+    <div class="hud hud--tr">
+      <div class="badge" id="btn-auto">AUTO · OFF</div>
+    </div>
+
+    <div class="hud hud--bl">
+      <div class="keys">
+        <b>DRAG</b> orbit &nbsp;·&nbsp; <b>SCROLL</b> zoom &nbsp;·&nbsp; <b>RMB</b> pan
+      </div>
+    </div>
+
+    <div class="hud hud--br">
+      <div><span class="status-dot" id="status-dot"></span><span id="status-label">GATE OPEN</span></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
