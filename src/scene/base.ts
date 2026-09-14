@@ -43,22 +43,22 @@ export function buildDioramaBase(rng: Rng): THREE.Group {
     b.add(footGeo, materials.get('plinth'), [fx, -H - 0.06, fz]);
   }
 
-  // Top ground plane
-  const ground = ShapeFactory.groundPatch(W - 0.15, D - 0.15, 28, 22, 0.05, rng);
-  b.add(ground, materials.get('grass'), [0, 0.001, 0]);
+  // Ground: packed earth / gravel (Japanese residential — not a lawn)
+  const ground = ShapeFactory.groundPatch(W - 0.15, D - 0.15, 28, 22, 0.04, rng);
+  b.add(ground, materials.get('dirt'), [0, 0.001, 0]);
 
-  // Dirt patches (keep clear of road/rail)
-  const dirtGeo = ShapeFactory.plane(1.8, 1.2);
-  const dirtMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 12; i++) {
+  // Gravel / concrete yard patches
+  const patchGeo = ShapeFactory.plane(2.0, 1.4);
+  const patchMats: THREE.Matrix4[] = [];
+  for (let i = 0; i < 14; i++) {
     const x = rng.range(-6.5, 6.5);
     const z = rng.range(-5.2, 5.2);
     if (Math.abs(x) < 1.8 || Math.abs(z) < 1.4) continue;
-    dirtMats.push(
-      mat4(x, 0.01, z, -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.6, 1.4), rng.range(0.6, 1.2), 1),
+    patchMats.push(
+      mat4(x, 0.012, z, -Math.PI / 2, 0, rng.range(0, Math.PI), rng.range(0.7, 1.5), rng.range(0.6, 1.2), 1),
     );
   }
-  b.instance(dirtGeo, materials.get('dirt'), dirtMats, false, true);
+  b.instance(patchGeo, materials.get('stone'), patchMats, false, true);
 
   return b.build();
 }

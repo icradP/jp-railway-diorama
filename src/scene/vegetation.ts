@@ -160,66 +160,30 @@ export function buildVegetation(rng: Rng): VegetationHandles {
   }
   b.instance(bushGeo, materials.get('leafC'), bushMats);
 
-  // Grass
-  const grassGeo = ShapeFactory.cone(0.035, 0.22, 4);
-  grassGeo.translate(0, 0.11, 0);
-  const grassMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 480; i++) {
-    const x = rng.range(-6.8, 6.8);
-    const z = rng.range(-5.4, 5.4);
-    if (Math.abs(x) < 1.45) continue;
-    if (Math.abs(z) < 1.0) continue;
-    const s = rng.range(0.6, 1.6);
-    grassMats.push(
-      mat4(x, 0.02, z, 0, rng.range(0, Math.PI), rng.range(-0.15, 0.15), s, s, s),
-    );
-  }
-  b.instance(grassGeo, materials.get('grassBlade'), grassMats, false, true);
+  // Grass blades / wildflowers removed — caused flicker and read as lawn.
+  // Empty-lot ground cover is a flat plane in house.ts instead.
 
-  // Dry grass tufts near track
-  const dryGeo = ShapeFactory.cone(0.04, 0.18, 4);
-  dryGeo.translate(0, 0.09, 0);
-  const dryMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 80; i++) {
-    const x = rng.range(-5.5, 5.5);
-    const z = rng.range(-1.6, 1.6);
-    if (Math.abs(x) < 1.3) continue;
-    if (Math.abs(z) < 0.95) continue;
-    dryMats.push(mat4(x, 0.05, z, 0, rng.range(0, Math.PI), 0, rng.range(0.7, 1.3), rng.range(0.8, 1.4), rng.range(0.7, 1.2)));
+  // Sparse low weeds only along track ballast edge (static, few)
+  const weedGeo = ShapeFactory.cone(0.03, 0.12, 4);
+  weedGeo.translate(0, 0.06, 0);
+  const weedMats: THREE.Matrix4[] = [];
+  for (let i = 0; i < 36; i++) {
+    const x = rng.range(-6.5, 6.5);
+    const z = rng.range(-1.3, 1.3);
+    if (Math.abs(x) < 1.35) continue;
+    if (Math.abs(z) < 0.85) continue;
+    weedMats.push(mat4(x, 0.04, z, 0, rng.range(0, Math.PI), 0, rng.range(0.7, 1.2), rng.range(0.7, 1.3), rng.range(0.7, 1.2)));
   }
-  b.instance(dryGeo, materials.get('grassDry'), dryMats, false, true);
-
-  // Wildflowers
-  const flowerStemGeo = ShapeFactory.cylinder(0.008, 0.008, 0.18, 4);
-  const flowerStemMats: THREE.Matrix4[] = [];
-  const flowerHeadMatsW: THREE.Matrix4[] = [];
-  const flowerHeadMatsY: THREE.Matrix4[] = [];
-  const flowerHeadMatsP: THREE.Matrix4[] = [];
-  const flowerHeadGeo = ShapeFactory.ico(0.04, 0);
-  for (let i = 0; i < 48; i++) {
-    const x = rng.range(-5.2, 5.2);
-    const z = rng.range(-4.2, 4.2);
-    if (Math.abs(x) < 1.5 || Math.abs(z) < 1.1) continue;
-    flowerStemMats.push(mat4(x, 0.1, z));
-    const head = mat4(x, 0.2, z);
-    const r = rng.next();
-    if (r < 0.4) flowerHeadMatsW.push(head);
-    else if (r < 0.7) flowerHeadMatsY.push(head);
-    else flowerHeadMatsP.push(head);
-  }
-  b.instance(flowerStemGeo, materials.get('grassBlade'), flowerStemMats, false, false);
-  b.instance(flowerHeadGeo, materials.get('flowerWhite'), flowerHeadMatsW, false, false);
-  b.instance(flowerHeadGeo, materials.get('flowerYellow'), flowerHeadMatsY, false, false);
-  b.instance(flowerHeadGeo, materials.get('flowerPink'), flowerHeadMatsP, false, false);
+  b.instance(weedGeo, materials.get('hedge'), weedMats, false, true);
 
   // Fallen leaves near sakura
   const leafGeo = ShapeFactory.box(0.08, 0.01, 0.06);
   const leafMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 18; i++) {
     const a = rng.range(0, Math.PI * 2);
-    const r = rng.range(0.4, 1.6);
-    const x = -4.2 + Math.cos(a) * r;
-    const z = 1.8 + Math.sin(a) * r;
+    const r = rng.range(0.4, 1.5);
+    const x = -6.5 + Math.cos(a) * r;
+    const z = 5.0 + Math.sin(a) * r;
     leafMats.push(mat4(x, 0.02, z, 0, rng.range(0, Math.PI), 0));
   }
   b.instance(leafGeo, materials.get('sakura'), leafMats, false, true);

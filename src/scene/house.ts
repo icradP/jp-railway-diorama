@@ -99,23 +99,71 @@ function addGableRoof(
   }
 }
 
-/** Vertical corner boards + one belt course — cleaner than full-perimeter rings. */
-function addWallTrim(
+/**
+ * Refined window: frame + glass + mullions + sill.
+ * face: 'front'|'back' uses +Z/−Z; 'side' uses ±X.
+ */
+function addWindow(
   g: MeshBuilder,
-  W: number,
-  D: number,
-  yBase: number,
-  yTop: number,
-  mat: THREE.Material,
+  opts: {
+    x: number;
+    y: number;
+    z: number;
+    w: number;
+    h: number;
+    face: 'front' | 'back' | 'sideL' | 'sideR';
+    frame: THREE.Material;
+    glass: THREE.Material;
+    sill?: boolean;
+    cols?: number;
+    rows?: number;
+  },
 ): void {
-  const h = yTop - yBase;
-  // Belt course at mid height
-  g.add(ShapeFactory.box(W + 0.04, 0.05, D + 0.04), mat, [0, yBase + h * 0.55, 0]);
+  const { x, y, z, w, h, face, frame, glass } = opts;
+  const cols = opts.cols ?? 2;
+  const rows = opts.rows ?? 2;
+  const t = 0.04; // frame thickness
+  const d = 0.06;
+
+  const isZ = face === 'front' || face === 'back';
+  const s = face === 'front' || face === 'sideR' ? 1 : -1;
+
+  // Outer frame
+  if (isZ) {
+    g.add(ShapeFactory.box(w + t * 2, h + t * 2, d), frame, [x, y, z + s * 0.01]);
+    g.add(ShapeFactory.box(w, h, d * 0.6), glass, [x, y, z + s * 0.025]);
+    // Mullions
+    for (let i = 1; i < cols; i++) {
+      g.add(ShapeFactory.box(0.03, h, d * 0.7), frame, [x - w / 2 + (w * i) / cols, y, z + s * 0.03]);
+    }
+    for (let j = 1; j < rows; j++) {
+      g.add(ShapeFactory.box(w, 0.03, d * 0.7), frame, [x, y - h / 2 + (h * j) / rows, z + s * 0.03]);
+    }
+    if (opts.sill !== false) {
+      g.add(ShapeFactory.box(w + t * 3, 0.05, 0.1), frame, [x, y - h / 2 - t - 0.02, z + s * 0.06]);
+    }
+  } else {
+    g.add(ShapeFactory.box(d, h + t * 2, w + t * 2), frame, [x + s * 0.01, y, z]);
+    g.add(ShapeFactory.box(d * 0.6, h, w), glass, [x + s * 0.025, y, z]);
+    for (let i = 1; i < cols; i++) {
+      g.add(ShapeFactory.box(d * 0.7, h, 0.03), frame, [x + s * 0.03, y, z - w / 2 + (w * i) / cols]);
+    }
+    for (let j = 1; j < rows; j++) {
+      g.add(ShapeFactory.box(d * 0.7, 0.03, w), frame, [x + s * 0.03, y - h / 2 + (h * j) / rows, z]);
+    }
+  }
 }
 
-/** Traditional, larger, engawa + deep eaves + complex gable.
- *  Scale reference: door ≈ 1.7 · 1F ceiling 2.4 · 2F 2.2 · total wall ~5.0
- */
+/** Foundation plinth + step — grounds the building. */
+function addFoundation(g: MeshBuilder, W: number, D: number, mat: THREE.Material): number {
+  const h = 0.28;
+  g.add(ShapeFactory.box(W + 0.18, h, D + 0.18), mat, [0, h / 2, 0]);
+  // Top edge band
+  g.add(ShapeFactory.box(W + 0.22, 0.04, D + 0.22), materials.get('houseTrimDark'), [0, h - 0.01, 0]);
+  return h;
+}
+
+/** Traditional, larger, engawa + deep eaves. */
 function buildHouseA(rng: Rng): THREE.Group {
   const g = new MeshBuilder('HouseA');
   const wall = materials.get('houseWallA');
@@ -125,79 +173,83 @@ function buildHouseA(rng: Rng): THREE.Group {
   const glass = materials.get('houseWindow');
   const warm = materials.get('houseWindowWarm');
 
-  const W = 4.2; // ~8.5m real
-  const D = 3.4;
-  const H1 = 2.35; // 1F
-  const H2 = 2.05; // 2F
-  const plinth = 0.12;
+  const W = 4.0;
+  const D = 3.2;
+  const H1 = 2.3;
+  const H2 = 2.0;
+  const plinth = addFoundation(g, W, D, materials.get('concrete'));
   const y1 = plinth + H1 / 2;
   const y2 = plinth + H1 + 0.08 + H2 / 2;
+  const wallTop = plinth + H1 + 0.08 + H2;
 
-  g.add(ShapeFactory.box(W + 0.22, 0.2, D + 0.22), materials.get('concrete'), [0, 0.1, 0]);
-
-  // 1F
+  // 1F body
   g.add(ShapeFactory.box(W, H1, D), wall, [0, y1, 0]);
+  // Corner posts
   for (const [px, pz] of [
-    [-W / 2 + 0.06, -D / 2 + 0.06],
-    [W / 2 - 0.06, -D / 2 + 0.06],
-    [-W / 2 + 0.06, D / 2 - 0.06],
-    [W / 2 - 0.06, D / 2 - 0.06],
+    [-W / 2 + 0.05, -D / 2 + 0.05],
+    [W / 2 - 0.05, -D / 2 + 0.05],
+    [-W / 2 + 0.05, D / 2 - 0.05],
+    [W / 2 - 0.05, D / 2 - 0.05],
   ] as const) {
-    g.add(ShapeFactory.box(0.14, H1, 0.14), trimD, [px, y1, pz]);
+    g.add(ShapeFactory.box(0.12, H1, 0.12), trimD, [px, y1, pz]);
   }
-  g.add(ShapeFactory.box(W + 0.1, 0.12, D + 0.1), trim, [0, plinth + H1 - 0.04, 0]);
+  // Floor belt
+  g.add(ShapeFactory.box(W + 0.08, 0.1, D + 0.08), trim, [0, plinth + H1 - 0.02, 0]);
 
-  // 2F
-  g.add(ShapeFactory.box(W - 0.25, H2, D - 0.25), wall, [0, y2, 0]);
-  g.add(ShapeFactory.box(W - 0.05, 0.1, D - 0.05), trim, [0, plinth + H1 + 0.08 + H2, 0]);
+  // 2F inset
+  g.add(ShapeFactory.box(W - 0.2, H2, D - 0.2), wall, [0, y2, 0]);
+  g.add(ShapeFactory.box(W + 0.02, 0.08, D + 0.02), trim, [0, wallTop, 0]);
 
   // Engawa
-  g.add(ShapeFactory.box(W * 0.8, 0.12, 0.85), materials.get('woodMid'), [0, 0.26, D / 2 + 0.48]);
-  for (let i = 0; i < 5; i++) {
-    g.add(ShapeFactory.box(0.09, 0.22, 0.09), trimD, [-1.5 + i * 0.75, 0.11, D / 2 + 0.48]);
+  g.add(ShapeFactory.box(W * 0.75, 0.1, 0.75), materials.get('woodMid'), [0, plinth + 0.08, D / 2 + 0.42]);
+  for (let i = 0; i < 4; i++) {
+    g.add(ShapeFactory.box(0.08, plinth, 0.08), trimD, [-1.1 + i * 0.75, plinth / 2, D / 2 + 0.42]);
   }
 
-  // Sliding glass door — human scale ~1.7
-  g.add(ShapeFactory.box(1.55, 1.7, 0.06), trim, [-0.35, plinth + 0.9, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(1.42, 1.55, 0.04), glass, [-0.35, plinth + 0.9, D / 2 + 0.05]);
-  g.add(ShapeFactory.box(0.05, 1.55, 0.07), trim, [-0.35, plinth + 0.9, D / 2 + 0.08]);
+  // Sliding door (shoji-like grid)
+  const doorY = plinth + 0.9;
+  g.add(ShapeFactory.box(1.5, 1.75, 0.07), trim, [-0.3, doorY, D / 2 + 0.02]);
+  g.add(ShapeFactory.box(1.38, 1.6, 0.04), glass, [-0.3, doorY, D / 2 + 0.05]);
+  for (let i = 1; i < 3; i++) {
+    g.add(ShapeFactory.box(0.03, 1.6, 0.05), trim, [-0.3 - 0.69 + (1.38 * i) / 3, doorY, D / 2 + 0.06]);
+  }
+  g.add(ShapeFactory.box(1.38, 0.03, 0.05), trim, [-0.3, doorY + 0.3, D / 2 + 0.06]);
 
   // 1F window
-  g.add(ShapeFactory.box(0.95, 0.7, 0.05), trim, [1.05, plinth + 1.3, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(0.84, 0.6, 0.03), glass, [1.05, plinth + 1.3, D / 2 + 0.05]);
+  addWindow(g, { x: 0.95, y: plinth + 1.25, z: D / 2, w: 0.9, h: 0.7, face: 'front', frame: trim, glass, cols: 3, rows: 2 });
+  // Side windows 1F
+  addWindow(g, { x: W / 2, y: plinth + 1.2, z: -0.4, w: 0.7, h: 0.6, face: 'sideR', frame: trim, glass, cols: 2 });
 
-  // 2F windows
-  for (const wx of [-1.1, 0, 1.1] as const) {
-    g.add(ShapeFactory.box(0.62, 0.7, 0.05), trim, [wx, y2 + 0.1, (D - 0.25) / 2 + 0.02]);
-    g.add(ShapeFactory.box(0.52, 0.58, 0.03), wx === 0 ? warm : glass, [wx, y2 + 0.1, (D - 0.25) / 2 + 0.05]);
-  }
-  g.add(ShapeFactory.box(0.05, 0.65, 0.7), trim, [W / 2 - 0.02, y2, 0]);
-  g.add(ShapeFactory.box(0.03, 0.55, 0.58), glass, [W / 2 + 0.01, y2, 0]);
+  // 2F front windows
+  addWindow(g, { x: -1.05, y: y2 + 0.05, z: (D - 0.2) / 2, w: 0.55, h: 0.65, face: 'front', frame: trim, glass, cols: 2, rows: 2 });
+  addWindow(g, { x: 0, y: y2 + 0.05, z: (D - 0.2) / 2, w: 0.55, h: 0.65, face: 'front', frame: trim, glass: warm, cols: 2, rows: 2 });
+  addWindow(g, { x: 1.05, y: y2 + 0.05, z: (D - 0.2) / 2, w: 0.55, h: 0.65, face: 'front', frame: trim, glass, cols: 2, rows: 2 });
+  // 2F side
+  addWindow(g, { x: W / 2 - 0.1, y: y2, z: 0.3, w: 0.55, h: 0.6, face: 'sideR', frame: trim, glass, cols: 2 });
 
   // Balcony
   const balY = plinth + H1 + 0.1;
-  g.add(ShapeFactory.box(2.0, 0.08, 0.65), materials.get('concrete'), [0.15, balY, D / 2 + 0.42]);
-  g.add(ShapeFactory.box(2.0, 0.42, 0.04), materials.get('metalGray'), [0.15, balY + 0.24, D / 2 + 0.7]);
-  for (let i = 0; i < 6; i++) {
-    g.add(ShapeFactory.box(0.035, 0.42, 0.035), materials.get('metalGray'), [-0.75 + i * 0.32, balY + 0.24, D / 2 + 0.7]);
+  g.add(ShapeFactory.box(1.9, 0.07, 0.55), materials.get('concrete'), [0.1, balY, D / 2 + 0.38]);
+  g.add(ShapeFactory.box(1.9, 0.38, 0.035), materials.get('metalGray'), [0.1, balY + 0.22, D / 2 + 0.62]);
+  for (let i = 0; i < 7; i++) {
+    g.add(ShapeFactory.box(0.03, 0.38, 0.03), materials.get('metalGray'), [-0.8 + i * 0.28, balY + 0.22, D / 2 + 0.62]);
   }
 
   // Downspouts
   for (const sx of [-1, 1] as const) {
-    g.add(ShapeFactory.cylinder(0.035, 0.035, plinth + H1 + 0.08 + H2, 6), materials.get('metalGray'), [sx * (W / 2 - 0.08), (plinth + H1 + H2) / 2, D / 2 - 0.08]);
+    g.add(ShapeFactory.cylinder(0.032, 0.032, wallTop - plinth, 6), materials.get('metalGray'), [sx * (W / 2 - 0.06), (plinth + wallTop) / 2, D / 2 - 0.06]);
   }
 
-  addWallTrim(g, W, D, plinth, plinth + H1, trim);
   addGableRoof(g, {
     W,
     D,
-    roofY: plinth + H1 + 0.08 + H2,
-    ridge: 0.85,
-    overhang: 0.45,
+    roofY: wallTop,
+    ridge: 0.8,
+    overhang: 0.42,
     roofMat: roof,
     edgeMat: materials.get('houseRoofEdge'),
     wallMat: wall,
-    thickness: 0.09,
+    thickness: 0.1,
   });
 
   void rng;
@@ -236,15 +288,13 @@ function buildHouseB(rng: Rng): THREE.Group {
   g.add(ShapeFactory.box(W + 0.4, 0.14, 0.07), roof, [0, roofY + 0.16, (D + 0.35) / 2]);
   g.add(ShapeFactory.box(W + 0.4, 0.14, 0.07), roof, [0, roofY + 0.16, -(D + 0.35) / 2]);
 
-  // Large modern windows
-  g.add(ShapeFactory.box(1.4, 1.25, 0.05), metal, [-0.25, plinth + 1.1, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(1.28, 1.1, 0.03), glass, [-0.25, plinth + 1.1, D / 2 + 0.05]);
-  g.add(ShapeFactory.box(0.75, 1.7, 0.12), materials.get('houseDoor'), [0.9, plinth + 0.9, D / 2 - 0.04]);
-  g.add(ShapeFactory.box(0.55, 0.5, 0.03), glass, [0.9, plinth + 1.4, D / 2 + 0.03]);
+  // Large modern windows with mullions
+  addWindow(g, { x: -0.3, y: plinth + 1.15, z: D / 2, w: 1.35, h: 1.15, face: 'front', frame: metal, glass, cols: 3, rows: 2 });
+  g.add(ShapeFactory.box(0.72, 1.7, 0.1), materials.get('houseDoor'), [0.9, plinth + 0.9, D / 2 - 0.02]);
+  addWindow(g, { x: 0.9, y: plinth + 1.45, z: D / 2 + 0.06, w: 0.5, h: 0.45, face: 'front', frame: metal, glass, cols: 1, rows: 1, sill: false });
 
-  g.add(ShapeFactory.box(1.85, 0.55, 0.04), metal, [0, y2 + 0.15, (D + 0.12) / 2 + 0.02]);
-  g.add(ShapeFactory.box(1.7, 0.45, 0.03), glass, [0, y2 + 0.15, (D + 0.12) / 2 + 0.05]);
-  g.add(ShapeFactory.box(0.04, 0.85, 0.42), glass, [W / 2 + 0.1, y2, 0.3]);
+  addWindow(g, { x: 0, y: y2 + 0.1, z: (D + 0.12) / 2, w: 1.7, h: 0.5, face: 'front', frame: metal, glass, cols: 4, rows: 1 });
+  addWindow(g, { x: W / 2 + 0.1, y: y2, z: 0.3, w: 0.45, h: 0.85, face: 'sideR', frame: metal, glass, cols: 1, rows: 2 });
 
   // Small balcony
   g.add(ShapeFactory.box(1.4, 0.06, 0.45), metal, [-0.25, plinth + H1 + 0.08, D / 2 + 0.32]);
@@ -310,14 +360,10 @@ function buildHouseC(rng: Rng): THREE.Group {
   g.add(ShapeFactory.box(1.15, 0.06, 0.65), roof, [-0.25, plinth + 1.9, D / 2 + 0.32], [0.15, 0, 0]);
   g.add(ShapeFactory.box(0.07, 1.7, 0.07), trim, [-0.8, plinth + 0.85, D / 2 + 0.5]);
 
-  g.add(ShapeFactory.box(0.9, 0.65, 0.05), trim, [1.0, plinth + 1.25, D / 2 + 0.02]);
-  g.add(ShapeFactory.box(0.78, 0.55, 0.03), glass, [1.0, plinth + 1.25, D / 2 + 0.05]);
-  for (const wx of [-0.85, 0.5] as const) {
-    g.add(ShapeFactory.box(0.55, 0.6, 0.05), trim, [wx, y2 + 0.1, (D - 0.1) / 2 + 0.02]);
-    g.add(ShapeFactory.box(0.45, 0.5, 0.03), glass, [wx, y2 + 0.1, (D - 0.1) / 2 + 0.05]);
-  }
-  g.add(ShapeFactory.box(0.05, 0.55, 0.6), trim, [-W / 2 + 0.02, y2, 0.25]);
-  g.add(ShapeFactory.box(0.03, 0.46, 0.5), glass, [-W / 2 - 0.01, y2, 0.25]);
+  addWindow(g, { x: 1.0, y: plinth + 1.25, z: D / 2, w: 0.85, h: 0.65, face: 'front', frame: trim, glass, cols: 3, rows: 2 });
+  addWindow(g, { x: -0.85, y: y2 + 0.05, z: (D - 0.1) / 2, w: 0.5, h: 0.55, face: 'front', frame: trim, glass, cols: 2 });
+  addWindow(g, { x: 0.5, y: y2 + 0.05, z: (D - 0.1) / 2, w: 0.5, h: 0.55, face: 'front', frame: trim, glass, cols: 2 });
+  addWindow(g, { x: -W / 2, y: y2, z: 0.25, w: 0.5, h: 0.5, face: 'sideL', frame: trim, glass, cols: 2 });
 
   g.add(ShapeFactory.box(0.48, 0.38, 0.26), materials.get('acUnit'), [W / 2 + 0.18, 0.5, -0.55]);
   g.add(ShapeFactory.cylinder(0.035, 0.035, 0.9, 5), materials.get('metalGray'), [W / 2 + 0.18, 1.05, -0.55]);
@@ -553,17 +599,8 @@ function buildEmptyLot(rng: Rng): THREE.Group {
   }
   lot.instance(dirtGeo, materials.get('dirt'), dirtMats, false, true);
 
-  // Healthy summer grass (not dry)
-  const tuftGeo = ShapeFactory.cone(0.035, 0.18, 4);
-  tuftGeo.translate(0, 0.09, 0);
-  const tuftMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < 40; i++) {
-    const x = CX + rng.range(-2.4, 2.4);
-    const z = CZ + rng.range(-1.8, 1.8);
-    if (Math.abs(x) < 1.5 || Math.abs(z) < 1.1) continue;
-    tuftMats.push(mat4(x, 0.02, z, 0, rng.range(0, Math.PI), 0, rng.range(0.8, 1.3), rng.range(0.9, 1.4), rng.range(0.8, 1.2)));
-  }
-  lot.instance(tuftGeo, materials.get('grassBlade'), tuftMats, false, true);
+  // Flat lawn patch (no instanced blades — no flicker)
+  lot.add(ShapeFactory.box(3.6, 0.02, 2.6), materials.get('grassShade'), [CX, 0.02, CZ]);
 
   // Big vacant-lot tree — ~2.8m, shorter than House A ridge
   const tree = new MeshBuilder('LotTree');
